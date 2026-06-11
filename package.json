@@ -9,8 +9,11 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@ai-sdk/google": "^3.0.81",
     "@ai-sdk/openai": "^3.0.70",
     "ai": "^6.0.201",
+    "googleapis": "^173.0.0",
+    "iron-session": "^8.0.4",
     "next": "16.2.9",
     "pdf-parse": "^2.4.5",
     "react": "19.2.4",

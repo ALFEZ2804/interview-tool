@@ -3,6 +3,7 @@
 import { useRef, useState, type DragEvent } from "react";
 import { useRouter } from "next/navigation";
 import type { Interview } from "@/lib/types";
+import { GmailImport } from "@/components/gmail-import";
 
 type State =
   | { kind: "idle" }
@@ -173,6 +174,26 @@ export default function Home() {
           </a>{" "}
           sin subir nada.
         </p>
+      </section>
+
+      <section className="space-y-3">
+        <div className="flex items-center gap-3">
+          <div className="h-px flex-1 bg-[color:var(--border)]" />
+          <span className="text-xs text-[color:var(--muted-2)]">o importa desde Gmail</span>
+          <div className="h-px flex-1 bg-[color:var(--border)]" />
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium">Transcripts de Google Meet</p>
+              <p className="text-xs text-[color:var(--muted)] mt-0.5">
+                Gemini genera transcripts automáticamente al terminar la reunión.
+              </p>
+            </div>
+          </div>
+          <GmailImport />
+        </div>
       </section>
     </div>
   );
