@@ -1,15 +1,19 @@
-import Link from "next/link";
-import { notFound } from "next/navigation";
-import { getAllInterviewIds, getInterviewById } from "@/lib/mock-data";
-import { RolePresentation } from "@/components/role-presentation";
-import { Transcript } from "@/components/transcript";
-import { QuestionFeedbackList } from "@/components/question-feedback";
-import { AgentSuggestionsPanel } from "@/components/agent-suggestions";
-import { RatingStars } from "@/components/rating-stars";
+"use client";
 
-export function generateStaticParams() {
-  return getAllInterviewIds().map((id) => ({ id }));
-}
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useParams } from "next/navigation";
+import {
+  DEMO_INTERVIEW_ID,
+  getInterviewById,
+} from "@/lib/mock-data";
+import type { Interview } from "@/lib/types";
+import { RolePresentation } from "@/components/role-presentation";
+import { QuestionFeedbackList } from "@/components/question-feedback";
+import { PitchFeedbackBlock } from "@/components/pitch-feedback";
+import { AgentSuggestionsPanel } from "@/components/agent-suggestions";
+import { InterviewTabs } from "@/components/interview-tabs";
+import { RatingStars } from "@/components/rating-stars";
 
 const statusLabels = {
   completed: "Cerrada",
@@ -17,13 +21,68 @@ const statusLabels = {
   drafting: "Borrador",
 } as const;
 
-export default async function InterviewPage(
-  props: PageProps<"/interview/[id]">
-) {
-  const { id } = await props.params;
-  const interview = getInterviewById(id);
-  if (!interview) notFound();
+type LoadState =
+  | { kind: "loading" }
+  | { kind: "found"; interview: Interview }
+  | { kind: "not-found" };
 
+export default function InterviewPage() {
+  const params = useParams<{ id: string }>();
+  const id = params.id;
+  const [state, setState] = useState<LoadState>({ kind: "loading" });
+
+  useEffect(() => {
+    if (!id) return;
+
+    const fromMock = getInterviewById(id);
+    if (fromMock) {
+      setState({ kind: "found", interview: fromMock });
+      return;
+    }
+
+    try {
+      const raw = localStorage.getItem(`interview:${id}`);
+      if (raw) {
+        const interview = JSON.parse(raw) as Interview;
+        setState({ kind: "found", interview });
+        return;
+      }
+    } catch {
+      // ignore
+    }
+
+    setState({ kind: "not-found" });
+  }, [id]);
+
+  if (state.kind === "loading") {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 text-[color:var(--muted)]">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[color:var(--border-strong)] border-t-[color:var(--accent)]" />
+        <p className="mt-4 text-sm">Cargando entrevista…</p>
+      </div>
+    );
+  }
+
+  if (state.kind === "not-found") {
+    return (
+      <div className="space-y-4 py-12 text-center">
+        <h1 className="text-xl font-semibold">Entrevista no encontrada</h1>
+        <p className="text-sm text-[color:var(--muted)] max-w-md mx-auto">
+          Esta entrevista no existe o se guardó solo en este navegador y has
+          borrado los datos locales.
+        </p>
+        <Link
+          href="/"
+          className="inline-block rounded-md bg-[color:var(--accent)] text-black text-sm font-medium px-4 py-2 hover:bg-[color:var(--accent-hover)] transition"
+        >
+          Subir un transcript
+        </Link>
+      </div>
+    );
+  }
+
+  const { interview } = state;
+  const isDemo = interview.id === DEMO_INTERVIEW_ID;
   const date = new Date(interview.date).toLocaleDateString("es-ES", {
     day: "2-digit",
     month: "long",
@@ -32,13 +91,18 @@ export default async function InterviewPage(
 
   return (
     <div className="space-y-8">
-      <nav className="text-xs text-[color:var(--muted)]">
+      <nav className="text-xs text-[color:var(--muted)] flex items-center gap-3">
         <Link
           href="/"
           className="hover:text-[color:var(--foreground)] transition"
         >
-          ← Entrevistas
+          ← Subir otra entrevista
         </Link>
+        {isDemo && (
+          <span className="rounded-full border border-[color:var(--accent-border)] bg-[color:var(--accent-soft)] px-2 py-0.5 text-[10px] uppercase tracking-wide text-[color:var(--accent)] font-semibold">
+            Demo
+          </span>
+        )}
       </nav>
 
       <header className="flex items-start justify-between gap-6 border-b border-[color:var(--border)] pb-6">
@@ -81,18 +145,20 @@ export default async function InterviewPage(
 
       <RolePresentation role={interview.role} />
 
-      <div className="grid gap-6 lg:grid-cols-5">
-        <div className="lg:col-span-3">
-          <QuestionFeedbackList questions={interview.questions} />
-        </div>
-        <div className="lg:col-span-2 space-y-6">
+      <InterviewTabs
+        feedback={
+          <div className="space-y-6">
+            <PitchFeedbackBlock pitch={interview.pitchFeedback} />
+            <QuestionFeedbackList questions={interview.questions} />
+          </div>
+        }
+        suggestions={
           <AgentSuggestionsPanel
             suggestions={interview.agent}
             roleTitle={interview.role.title}
           />
-          <Transcript lines={interview.transcript} />
-        </div>
-      </div>
+        }
+      />
     </div>
   );
 }

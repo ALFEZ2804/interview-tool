@@ -14,23 +14,27 @@ export interface RolePresentation {
   niceToHave: string[];
 }
 
-export interface TranscriptLine {
-  speaker: "interviewer" | "candidate";
-  text: string;
-  timestamp: string;
+export interface AgentReadings {
+  positive: string[];
+  negative: string[];
+}
+
+export interface PitchFeedback {
+  strengths: string[];
+  improvements: string[];
+  agentReadings: AgentReadings;
 }
 
 export interface QuestionFeedback {
   rating: 1 | 2 | 3 | 4 | 5;
   strengths: string[];
   improvements: string[];
-  note: string;
+  agentReadings: AgentReadings;
 }
 
 export interface InterviewQuestion {
   id: string;
   question: string;
-  candidateAnswer: string;
   feedback: QuestionFeedback;
 }
 
@@ -53,7 +57,7 @@ export interface Interview {
   overallRating: number;
   overallSummary: string;
   role: RolePresentation;
-  transcript: TranscriptLine[];
+  pitchFeedback: PitchFeedback;
   questions: InterviewQuestion[];
   agent: AgentSuggestions;
 }

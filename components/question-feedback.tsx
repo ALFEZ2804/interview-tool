@@ -1,4 +1,4 @@
-import type { InterviewQuestion } from "@/lib/types";
+import type { AgentReadings, InterviewQuestion } from "@/lib/types";
 import { RatingStars } from "./rating-stars";
 
 export function QuestionFeedbackList({
@@ -58,15 +58,6 @@ function QuestionFeedbackItem({
         </div>
       </header>
 
-      <div className="rounded-md border border-[color:var(--border)] bg-[color:var(--background)]/50 px-4 py-3">
-        <div className="text-[10px] uppercase tracking-wide text-[color:var(--muted-2)] mb-1">
-          Respuesta del candidato (resumen)
-        </div>
-        <p className="text-sm text-[color:var(--foreground)]/80 leading-relaxed">
-          {question.candidateAnswer}
-        </p>
-      </div>
-
       <div className="grid gap-4 md:grid-cols-2">
         <FeedbackBlock
           title="Lo que funcionó"
@@ -80,17 +71,12 @@ function QuestionFeedbackItem({
         />
       </div>
 
-      <div className="rounded-md border border-[color:var(--accent-border)] bg-[color:var(--accent-soft)] px-4 py-3">
-        <div className="text-[10px] uppercase tracking-wide text-[color:var(--accent)] font-semibold mb-1">
-          Lectura del agente
-        </div>
-        <p className="text-sm leading-relaxed">{question.feedback.note}</p>
-      </div>
+      <AgentReadingsBlock readings={question.feedback.agentReadings} />
     </article>
   );
 }
 
-function FeedbackBlock({
+export function FeedbackBlock({
   title,
   items,
   tone,
@@ -112,6 +98,54 @@ function FeedbackBlock({
         {items.map((it, i) => (
           <li key={i} className="flex gap-2 text-sm leading-relaxed">
             <span className={`${dot} shrink-0 mt-1.5`}>•</span>
+            <span>{it}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+export function AgentReadingsBlock({ readings }: { readings: AgentReadings }) {
+  return (
+    <div className="rounded-md border border-[color:var(--accent-border)] bg-[color:var(--accent-soft)] px-4 py-3 space-y-3">
+      <div className="text-[10px] uppercase tracking-wide text-[color:var(--accent)] font-semibold">
+        Lectura del agente
+      </div>
+      <div className="grid gap-3 md:grid-cols-2">
+        <ReadingList
+          label="Lo bueno"
+          items={readings.positive}
+          accent="text-[color:var(--success)]"
+        />
+        <ReadingList
+          label="Lo malo"
+          items={readings.negative}
+          accent="text-[color:var(--danger)]"
+        />
+      </div>
+    </div>
+  );
+}
+
+function ReadingList({
+  label,
+  items,
+  accent,
+}: {
+  label: string;
+  items: string[];
+  accent: string;
+}) {
+  return (
+    <div>
+      <div className="text-[10px] uppercase tracking-wide text-[color:var(--muted-2)] mb-1.5">
+        {label}
+      </div>
+      <ul className="space-y-1.5">
+        {items.map((it, i) => (
+          <li key={i} className="flex gap-2 text-sm leading-relaxed">
+            <span className={`${accent} shrink-0 mt-1.5`}>•</span>
             <span>{it}</span>
           </li>
         ))}
