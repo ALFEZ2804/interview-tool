@@ -96,6 +96,47 @@ const agentSuggestionsSchema = z.object({
     ),
 });
 
+const competencyScoreSchema = z.object({
+  name: z
+    .string()
+    .min(1)
+    .describe(
+      "Nombre de la competencia evaluada, calibrada al rol. Ej: 'Profundidad técnica', 'Comunicación ejecutiva'."
+    ),
+  score: ratingSchema.describe(
+    "Puntuación 1-5 del CANDIDATO en esta competencia, basada en la evidencia del transcript."
+  ),
+  weight: z
+    .number()
+    .int()
+    .min(5)
+    .max(60)
+    .describe(
+      "Peso relativo de la competencia en %. Los pesos de TODAS las competencias deben sumar exactamente 100."
+    ),
+  rationale: z
+    .string()
+    .min(1)
+    .describe(
+      "Justificación breve anclada a evidencia concreta del transcript, no genérica."
+    ),
+});
+
+const scorecardSchema = z.object({
+  recommendation: z
+    .enum(["strong-yes", "yes", "mixed", "no"])
+    .describe(
+      "Recomendación de avance del candidato según el conjunto de competencias."
+    ),
+  competencies: z
+    .array(competencyScoreSchema)
+    .min(3)
+    .max(6)
+    .describe(
+      "3-6 competencias clave para el rol detectado, con pesos que sumen 100."
+    ),
+});
+
 export const interviewSchema = z.object({
   candidate: z.object({
     name: z
@@ -154,6 +195,9 @@ export const interviewSchema = z.object({
       "Las preguntas más significativas que hizo el entrevistador. Máximo 10, prioriza diversidad."
     ),
   agent: agentSuggestionsSchema,
+  scorecard: scorecardSchema.describe(
+    "Scorecard de competencias del candidato: evaluación ponderada por competencia y recomendación de avance."
+  ),
 });
 
 export type InterviewSchema = z.infer<typeof interviewSchema>;

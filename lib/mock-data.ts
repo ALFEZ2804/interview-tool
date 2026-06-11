@@ -159,6 +159,46 @@ export const interviews: Interview[] = [
         "Imagínate que Nova decide entrar en LatAm. ¿Qué cambiarías de la plataforma desde el día uno?",
       ],
     },
+    scorecard: {
+      recommendation: "yes",
+      competencies: [
+        {
+          name: "Profundidad técnica",
+          score: 5,
+          weight: 30,
+          rationale:
+            "Idempotencia, exactly-once y constraints en Postgres explicados con precisión. Habla como quien lo implementó, no como quien lo leyó.",
+        },
+        {
+          name: "Diseño de sistemas",
+          score: 4,
+          weight: 25,
+          rationale:
+            "Dimensiona antes de complicar (50k/día → 0.6 req/s, no Kafka). No llegamos a ver cómo escala su diseño bajo presión de producto.",
+        },
+        {
+          name: "Comunicación de trade-offs",
+          score: 5,
+          weight: 15,
+          rationale:
+            "Nombra el coste (round trip extra) en lugar de esconderlo. Comunica decisiones con claridad ejecutiva.",
+        },
+        {
+          name: "Pensamiento operativo",
+          score: 3,
+          weight: 20,
+          rationale:
+            "El rol exige SLOs, observabilidad y on-call, pero no se exploró en la llamada. Señal pendiente, no negativa.",
+        },
+        {
+          name: "Fit con equipo pequeño",
+          score: 2,
+          weight: 10,
+          rationale:
+            "Sin evidencia sobre cómo prioriza sin PM dedicado. Es el principal gap a cubrir en una segunda ronda.",
+        },
+      ],
+    },
   },
 ];
 
