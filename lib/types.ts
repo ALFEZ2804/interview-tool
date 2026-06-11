@@ -40,6 +40,21 @@ export interface AgentSuggestions {
   business: string[];
 }
 
+export type Recommendation = "strong-yes" | "yes" | "mixed" | "no";
+
+export interface CompetencyScore {
+  name: string;
+  score: 1 | 2 | 3 | 4 | 5;
+  /** Peso relativo en %. Las competencias de un scorecard suman 100. */
+  weight: number;
+  rationale: string;
+}
+
+export interface Scorecard {
+  recommendation: Recommendation;
+  competencies: CompetencyScore[];
+}
+
 export interface Interview {
   id: string;
   candidate: {
@@ -56,4 +71,5 @@ export interface Interview {
   transcript: TranscriptLine[];
   questions: InterviewQuestion[];
   agent: AgentSuggestions;
+  scorecard: Scorecard;
 }

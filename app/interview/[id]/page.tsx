@@ -5,7 +5,9 @@ import { RolePresentation } from "@/components/role-presentation";
 import { Transcript } from "@/components/transcript";
 import { QuestionFeedbackList } from "@/components/question-feedback";
 import { AgentSuggestionsPanel } from "@/components/agent-suggestions";
+import { ScorecardPanel } from "@/components/scorecard";
 import { RatingStars } from "@/components/rating-stars";
+import { recommendationConfig } from "@/lib/recommendation";
 
 export function generateStaticParams() {
   return getAllInterviewIds().map((id) => ({ id }));
@@ -59,16 +61,23 @@ export default async function InterviewPage(
             </div>
           </div>
         </div>
-        <div className="text-right">
-          <div className="text-[11px] uppercase tracking-wide text-[color:var(--muted-2)]">
-            Valoración global
+        <div className="flex flex-col items-end gap-2">
+          <div className="text-right">
+            <div className="text-[11px] uppercase tracking-wide text-[color:var(--muted-2)]">
+              Valoración global
+            </div>
+            <div className="mt-1 flex items-center justify-end gap-2">
+              <RatingStars value={interview.overallRating} size="md" />
+              <span className="text-sm font-medium">
+                {interview.overallRating}/5
+              </span>
+            </div>
           </div>
-          <div className="mt-1 flex items-center justify-end gap-2">
-            <RatingStars value={interview.overallRating} size="md" />
-            <span className="text-sm font-medium">
-              {interview.overallRating}/5
-            </span>
-          </div>
+          <span
+            className={`rounded-full border px-3 py-1 text-xs font-medium ${recommendationConfig[interview.scorecard.recommendation].className}`}
+          >
+            {recommendationConfig[interview.scorecard.recommendation].label}
+          </span>
         </div>
       </header>
 
@@ -93,6 +102,8 @@ export default async function InterviewPage(
           <Transcript lines={interview.transcript} />
         </div>
       </div>
+
+      <ScorecardPanel scorecard={interview.scorecard} />
     </div>
   );
 }

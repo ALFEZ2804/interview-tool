@@ -145,6 +145,46 @@ export const interviews: Interview[] = [
         "Imagínate que Nova decide entrar en un mercado nuevo (LatAm). ¿Qué cambiarías de la plataforma desde día 1?",
       ],
     },
+    scorecard: {
+      recommendation: "yes",
+      competencies: [
+        {
+          name: "Profundidad técnica",
+          score: 5,
+          weight: 30,
+          rationale:
+            "Idempotencia, exactly-once y constraints en Postgres explicados con precisión. Habla como quien lo implementó, no como quien lo leyó.",
+        },
+        {
+          name: "Diseño de sistemas",
+          score: 4,
+          weight: 25,
+          rationale:
+            "Dimensiona antes de complicar (50k/día → 0.6 req/s, no Kafka). No llegamos a ver cómo escala su diseño bajo presión de producto.",
+        },
+        {
+          name: "Comunicación de trade-offs",
+          score: 5,
+          weight: 15,
+          rationale:
+            "Nombra el coste (round trip extra) en lugar de esconderlo. Comunica decisiones con claridad ejecutiva.",
+        },
+        {
+          name: "Pensamiento operativo",
+          score: 3,
+          weight: 20,
+          rationale:
+            "El rol exige SLOs, observabilidad y on-call, pero no se exploró en la llamada. Señal pendiente, no negativa.",
+        },
+        {
+          name: "Fit con equipo pequeño",
+          score: 2,
+          weight: 10,
+          rationale:
+            "Sin evidencia sobre cómo prioriza sin PM dedicado. Es el principal gap a cubrir en una segunda ronda.",
+        },
+      ],
+    },
   },
   {
     id: "head-of-growth-marcos-de-la-vega",
@@ -288,6 +328,46 @@ export const interviews: Interview[] = [
         "Cuéntame de una vez que paraste de invertir en un canal aunque el CAC era bueno. ¿Por qué?",
       ],
     },
+    scorecard: {
+      recommendation: "mixed",
+      competencies: [
+        {
+          name: "Pensamiento analítico",
+          score: 5,
+          weight: 25,
+          rationale:
+            "CAC blended ajustado por halo a búsquedas branded. Entiende atribución de verdad, no se queda en last-click.",
+        },
+        {
+          name: "Estrategia de canal",
+          score: 4,
+          weight: 15,
+          rationale:
+            "Hipótesis explícita antes de gastar (test de 50k€ con códigos + brand lift). Faltó cerrar con el resultado: ¿escaló o no?",
+        },
+        {
+          name: "Liderazgo de equipo",
+          score: 2,
+          weight: 25,
+          rationale:
+            "Le costó separar lo que hizo él de lo que hizo el equipo. Es la bandera principal antes de avanzar.",
+        },
+        {
+          name: "Visión de producto-growth",
+          score: 3,
+          weight: 20,
+          rationale:
+            "Conecta growth con producto (las 2 semanas con activación), pero la respuesta es de manual: cualquier head senior la diría.",
+        },
+        {
+          name: "Ownership de métricas",
+          score: 3,
+          weight: 15,
+          rationale:
+            "Maneja las métricas norte, pero no dio cifras propias concretas que confirmen que las vivió en primera persona.",
+        },
+      ],
+    },
   },
   {
     id: "product-manager-laura-fontecha",
@@ -428,6 +508,46 @@ export const interviews: Interview[] = [
         "¿Qué priorizarías en tu primer trimestre en Nova: profundizar matching o abrir un nuevo segmento de talento?",
         "Si Nova fuera tu empresa y tuvieras que elegir entre crecer usuarios o crecer revenue por usuario, ¿qué eliges y cuándo cambia tu respuesta?",
         "Cuéntame cómo le venderías a tu CEO una iniciativa con ROI esperado bajo pero estratégica.",
+      ],
+    },
+    scorecard: {
+      recommendation: "yes",
+      competencies: [
+        {
+          name: "Toma de decisiones con datos",
+          score: 5,
+          weight: 25,
+          rationale:
+            "Mató su propia feature contra comercial apoyándose en un holdout regional. Decide con datos, no con opinión.",
+        },
+        {
+          name: "Rigor analítico",
+          score: 5,
+          weight: 20,
+          rationale:
+            "Holdout en vez de A/B simple y la cuenta de canibalización de cabeza (1.1% sobre 18% de viajes). Metodología sólida.",
+        },
+        {
+          name: "Visión de métricas",
+          score: 4,
+          weight: 20,
+          rationale:
+            "Propone dos métricas (cantidad + calidad) para no optimizar spam. Faltó horizonte temporal y cómo separar tendencia de ruido.",
+        },
+        {
+          name: "Comunicación ejecutiva",
+          score: 4,
+          weight: 15,
+          rationale:
+            "Concreta y estructurada: nombra feature, % de impacto y contraparte interna sin rodeos.",
+        },
+        {
+          name: "Colaboración con engineering",
+          score: 3,
+          weight: 20,
+          rationale:
+            "Pendiente de profundizar. No se exploró su relación con tech leads — gap señalado en el resumen.",
+        },
       ],
     },
   },

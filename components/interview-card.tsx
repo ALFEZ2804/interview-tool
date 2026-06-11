@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Interview } from "@/lib/types";
+import { recommendationConfig } from "@/lib/recommendation";
 import { RatingStars } from "./rating-stars";
 
 const statusLabels: Record<Interview["status"], string> = {
@@ -71,7 +72,12 @@ export function InterviewCard({ interview }: { interview: Interview }) {
           <span aria-hidden>·</span>
           <span>{focusLabels[interview.role.focus]}</span>
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-2">
+          <span
+            className={`rounded-full border px-2 py-0.5 text-[10px] font-medium tracking-wide uppercase ${recommendationConfig[interview.scorecard.recommendation].className}`}
+          >
+            {recommendationConfig[interview.scorecard.recommendation].shortLabel}
+          </span>
           <RatingStars value={interview.overallRating} />
         </div>
       </div>
