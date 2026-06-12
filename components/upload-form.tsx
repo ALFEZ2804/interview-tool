@@ -56,6 +56,20 @@ export function UploadForm({
         body: form,
       });
 
+      // Si el servidor cae a nivel plataforma (timeout, crash del runtime…)
+      // devuelve una página HTML, no JSON. Parsear eso a ciegas escondía el
+      // error real tras un críptico "Unexpected token '<'".
+      const isJson = res.headers
+        .get("content-type")
+        ?.includes("application/json");
+      if (!isJson) {
+        setState({
+          kind: "error",
+          message: `El servidor respondió con un error ${res.status} (${res.statusText}). Reintenta en un momento; si persiste, revisa los logs del despliegue.`,
+        });
+        return;
+      }
+
       const data = (await res.json()) as
         | { interviewId: string; positionId: string }
         | { error: string; details?: string };

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { generateObject } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
-import { PDFParse } from "pdf-parse";
+import { extractText, getDocumentProxy } from "unpdf";
 import { interviewSchema } from "@/lib/schema";
 import { prisma } from "@/lib/db";
 import type { Prisma } from "@/lib/generated/prisma/client";
@@ -37,7 +37,7 @@ Criterios importantes:
 export async function POST(request: Request) {
   if (!process.env.OPENAI_API_KEY) {
     return NextResponse.json(
-      { error: "Falta OPENAI_API_KEY en .env.local" },
+      { error: "Falta OPENAI_API_KEY en .env" },
       { status: 500 }
     );
   }
@@ -99,10 +99,13 @@ export async function POST(request: Request) {
   let transcript: string;
   try {
     if (isPdf) {
-      const buffer = Buffer.from(await file.arrayBuffer());
-      const parser = new PDFParse({ data: buffer });
-      const result = await parser.getText();
-      transcript = result.text?.trim() ?? "";
+      // unpdf usa un build de pdfjs pensado para serverless: no depende de
+      // APIs del DOM (DOMMatrix, etc.) ni de binarios nativos, que es justo
+      // lo que rompía a pdf-parse en el runtime Node de Vercel.
+      const data = new Uint8Array(await file.arrayBuffer());
+      const pdf = await getDocumentProxy(data);
+      const { text } = await extractText(pdf, { mergePages: true });
+      transcript = text.trim();
     } else {
       transcript = (await file.text()).trim();
     }
