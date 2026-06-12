@@ -1,0 +1,29 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Position {
+  id         String      @id @default(cuid())
+  name       String      @unique
+  createdAt  DateTime    @default(now())
+  interviews Interview[]
+}
+
+model Interview {
+  id            String   @id @default(cuid())
+  positionId    String
+  position      Position @relation(fields: [positionId], references: [id], onDelete: Cascade)
+  candidateName String
+  date          DateTime @default(now())
+  overallRating Int
+  status        String
+  // Análisis completo generado por el agente (shape de lib/types.ts#Interview).
+  // Se guarda como JSON para poder evolucionar el análisis sin migrar la BD.
+  analysis      Json
+  createdAt     DateTime @default(now())
+}

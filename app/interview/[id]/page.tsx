@@ -1,12 +1,7 @@
-"use client";
-
-import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
-import {
-  DEMO_INTERVIEW_ID,
-  getInterviewById,
-} from "@/lib/mock-data";
+import { notFound } from "next/navigation";
+import { prisma } from "@/lib/db";
+import { getInterviewById } from "@/lib/mock-data";
 import type { Interview } from "@/lib/types";
 import { RolePresentation } from "@/components/role-presentation";
 import { QuestionFeedbackList } from "@/components/question-feedback";
@@ -21,68 +16,33 @@ const statusLabels = {
   drafting: "Borrador",
 } as const;
 
-type LoadState =
-  | { kind: "loading" }
-  | { kind: "found"; interview: Interview }
-  | { kind: "not-found" };
+export default async function InterviewPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
 
-export default function InterviewPage() {
-  const params = useParams<{ id: string }>();
-  const id = params.id;
-  const [state, setState] = useState<LoadState>({ kind: "loading" });
+  // El ejemplo precargado vive en mock-data, no en la BD.
+  const demo = getInterviewById(id);
+  let interview: Interview;
+  let position: { id: string; name: string } | null = null;
 
-  useEffect(() => {
-    if (!id) return;
-
-    const fromMock = getInterviewById(id);
-    if (fromMock) {
-      setState({ kind: "found", interview: fromMock });
-      return;
-    }
-
-    try {
-      const raw = localStorage.getItem(`interview:${id}`);
-      if (raw) {
-        const interview = JSON.parse(raw) as Interview;
-        setState({ kind: "found", interview });
-        return;
-      }
-    } catch {
-      // ignore
-    }
-
-    setState({ kind: "not-found" });
-  }, [id]);
-
-  if (state.kind === "loading") {
-    return (
-      <div className="flex flex-col items-center justify-center py-24 text-[color:var(--muted)]">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[color:var(--border-strong)] border-t-[color:var(--accent)]" />
-        <p className="mt-4 text-sm">Cargando entrevista…</p>
-      </div>
-    );
+  if (demo) {
+    interview = demo;
+  } else {
+    const row = await prisma.interview.findUnique({
+      where: { id },
+      include: { position: { select: { id: true, name: true } } },
+    });
+    if (!row) notFound();
+    interview = {
+      ...(row.analysis as unknown as Omit<Interview, "id">),
+      id: row.id,
+    };
+    position = row.position;
   }
 
-  if (state.kind === "not-found") {
-    return (
-      <div className="space-y-4 py-12 text-center">
-        <h1 className="text-xl font-semibold">Entrevista no encontrada</h1>
-        <p className="text-sm text-[color:var(--muted)] max-w-md mx-auto">
-          Esta entrevista no existe o se guardó solo en este navegador y has
-          borrado los datos locales.
-        </p>
-        <Link
-          href="/"
-          className="inline-block rounded-md bg-[color:var(--accent)] text-black text-sm font-medium px-4 py-2 hover:bg-[color:var(--accent-hover)] transition"
-        >
-          Subir un transcript
-        </Link>
-      </div>
-    );
-  }
-
-  const { interview } = state;
-  const isDemo = interview.id === DEMO_INTERVIEW_ID;
   const date = new Date(interview.date).toLocaleDateString("es-ES", {
     day: "2-digit",
     month: "long",
@@ -92,13 +52,22 @@ export default function InterviewPage() {
   return (
     <div className="space-y-8">
       <nav className="text-xs text-[color:var(--muted)] flex items-center gap-3">
-        <Link
-          href="/"
-          className="hover:text-[color:var(--foreground)] transition"
-        >
-          ← Subir otra entrevista
-        </Link>
-        {isDemo && (
+        {position ? (
+          <Link
+            href={`/position/${position.id}`}
+            className="hover:text-[color:var(--foreground)] transition"
+          >
+            ← {position.name}
+          </Link>
+        ) : (
+          <Link
+            href="/"
+            className="hover:text-[color:var(--foreground)] transition"
+          >
+            ← Subir otra entrevista
+          </Link>
+        )}
+        {demo && (
           <span className="rounded-full border border-[color:var(--accent-border)] bg-[color:var(--accent-soft)] px-2 py-0.5 text-[10px] uppercase tracking-wide text-[color:var(--accent)] font-semibold">
             Demo
           </span>

@@ -44,6 +44,19 @@ export interface AgentSuggestions {
   business: string[];
 }
 
+export interface SidebarInterview {
+  id: string;
+  candidateName: string;
+  date: string;
+  overallRating: number;
+}
+
+export interface SidebarPosition {
+  id: string;
+  name: string;
+  interviews: SidebarInterview[];
+}
+
 export interface Interview {
   id: string;
   candidate: {

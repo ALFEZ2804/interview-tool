@@ -149,9 +149,9 @@ export const interviewSchema = z.object({
   questions: z
     .array(interviewQuestionSchema)
     .min(2)
-    .max(10)
+    .max(40)
     .describe(
-      "Las preguntas más significativas que hizo el entrevistador. Máximo 10, prioriza diversidad."
+      "TODAS las preguntas que hizo el entrevistador, en orden cronológico. No omitas ninguna pregunta real; solo descarta muletillas o confirmaciones triviales ('¿me oyes?', '¿vale?')."
     ),
   agent: agentSuggestionsSchema,
 });

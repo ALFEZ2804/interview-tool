@@ -1,7 +1,12 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
+import { Sidebar } from "@/components/sidebar";
 import "./globals.css";
+
+// Todas las páginas leen de la BD en cada request: renderizado dinámico
+// para que `next build` no intente conectar a Postgres al prerenderizar.
+export const dynamic = "force-dynamic";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,7 +36,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <header className="sticky top-0 z-30 border-b border-[color:var(--border)] bg-[color:var(--background)]/80 backdrop-blur">
-          <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
+          <div className="flex h-14 items-center justify-between px-6">
             <Link href="/" className="flex items-center gap-2">
               <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-[color:var(--accent)] text-black font-bold">
                 N
@@ -43,28 +48,23 @@ export default function RootLayout({
                 </span>
               </span>
             </Link>
-            <nav className="flex items-center gap-1 text-sm text-[color:var(--muted)]">
-              <Link
-                href="/"
-                className="rounded-md px-3 py-1.5 hover:bg-[color:var(--surface)] hover:text-[color:var(--foreground)] transition"
-              >
-                Entrevistas
-              </Link>
-              <span className="rounded-md px-3 py-1.5 text-[color:var(--muted-2)]">
-                Plantillas
-              </span>
-              <span className="rounded-md px-3 py-1.5 text-[color:var(--muted-2)]">
-                Equipo
-              </span>
-            </nav>
+            <Link
+              href="/"
+              className="rounded-md bg-[color:var(--accent)] px-3 py-1.5 text-sm font-medium text-black hover:bg-[color:var(--accent-hover)] transition"
+            >
+              Nueva entrevista
+            </Link>
           </div>
         </header>
-        <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-10">
-          {children}
-        </main>
+        <div className="flex flex-1">
+          <Sidebar />
+          <main className="flex-1 min-w-0 px-6 py-10">
+            <div className="mx-auto max-w-4xl">{children}</div>
+          </main>
+        </div>
         <footer className="border-t border-[color:var(--border)] py-6">
-          <div className="mx-auto max-w-6xl px-6 text-xs text-[color:var(--muted-2)]">
-            Construido con el tema Nova · Solo front, datos simulados
+          <div className="px-6 text-xs text-[color:var(--muted-2)]">
+            Construido con el tema Nova
           </div>
         </footer>
       </body>
