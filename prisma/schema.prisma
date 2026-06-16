@@ -25,5 +25,19 @@ model Interview {
   // Análisis completo generado por el agente (shape de lib/types.ts#Interview).
   // Se guarda como JSON para poder evolucionar el análisis sin migrar la BD.
   analysis      Json
+  // Trazabilidad de la ingesta automática desde Google Drive (OAuth).
+  sourceDocId      String?  @unique // ID del Doc de Gemini; evita reprocesarlo.
+  interviewerEmail String? // cuenta de Google que capturó la entrevista.
   createdAt     DateTime @default(now())
+}
+
+model GoogleAccount {
+  id    String @id @default(cuid())
+  email String @unique
+  // refresh token de OAuth, cifrado en reposo (AES-256-GCM, ver lib/crypto.ts).
+  refreshToken String
+  // Solo se ingieren Docs creados a partir de aquí (no reprocesa histórico).
+  ingestSince DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

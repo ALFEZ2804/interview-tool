@@ -46,6 +46,9 @@ export type AnalyzeInput = {
   transcript: string;
   positionId?: string | null;
   positionName?: string | null;
+  // Origen de la ingesta automática (Drive): permiten dedup y trazabilidad.
+  sourceDocId?: string | null;
+  interviewerEmail?: string | null;
 };
 
 export type AnalyzeResult = {
@@ -60,6 +63,8 @@ export async function analyzeAndStore({
   transcript,
   positionId,
   positionName,
+  sourceDocId,
+  interviewerEmail,
 }: AnalyzeInput): Promise<AnalyzeResult> {
   if (!process.env.OPENAI_API_KEY) {
     throw new AnalyzeError(500, "Falta OPENAI_API_KEY en .env");
@@ -142,6 +147,8 @@ export async function analyzeAndStore({
         overallRating: analysis.overallRating,
         status: analysis.status,
         analysis: analysis as unknown as Prisma.InputJsonValue,
+        sourceDocId: sourceDocId ?? null,
+        interviewerEmail: interviewerEmail ?? null,
       },
       select: { id: true, positionId: true },
     });
