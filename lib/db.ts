@@ -6,11 +6,30 @@ import { PrismaPg } from "@prisma/adapter-pg";
 // el cliente en globalThis.
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
+// pg-connection-string deprecará tratar 'prefer'/'require'/'verify-ca' como
+// 'verify-full' (cambio de semántica en pg v9). Lo hacemos explícito para
+// conservar EXACTAMENTE el comportamiento actual y silenciar el warning, sin
+// tocar la env var (sirve igual en local y en Vercel).
+function connectionString(): string | undefined {
+  const raw = process.env.DATABASE_URL;
+  if (!raw) return raw;
+  try {
+    const url = new URL(raw);
+    const mode = url.searchParams.get("sslmode");
+    if (mode && ["prefer", "require", "verify-ca"].includes(mode)) {
+      url.searchParams.set("sslmode", "verify-full");
+    }
+    return url.toString();
+  } catch {
+    return raw;
+  }
+}
+
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
     adapter: new PrismaPg({
-      connectionString: process.env.DATABASE_URL,
+      connectionString: connectionString(),
     }),
   });
 

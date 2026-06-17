@@ -122,7 +122,7 @@ const competencyScoreSchema = z.object({
     ),
 });
 
-const scorecardSchema = z.object({
+export const scorecardSchema = z.object({
   recommendation: z
     .enum(["strong-yes", "yes", "mixed", "no"])
     .describe(

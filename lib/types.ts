@@ -88,5 +88,7 @@ export interface Interview {
   pitchFeedback: PitchFeedback;
   questions: InterviewQuestion[];
   agent: AgentSuggestions;
-  scorecard: Scorecard;
+  // Opcional: las entrevistas analizadas antes de incorporar el scorecard no lo
+  // tienen. La UI debe tolerar su ausencia (ver app/interview/[id]/page.tsx).
+  scorecard?: Scorecard;
 }

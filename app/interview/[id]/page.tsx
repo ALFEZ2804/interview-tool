@@ -56,7 +56,9 @@ export default async function InterviewPage({
     position = row.position;
   }
 
-  const recommendation = recommendationConfig[interview.scorecard.recommendation];
+  const recommendation = interview.scorecard
+    ? recommendationConfig[interview.scorecard.recommendation]
+    : null;
   const date = new Date(interview.date).toLocaleDateString("es-ES", {
     day: "2-digit",
     month: "long",
@@ -118,11 +120,13 @@ export default async function InterviewPage({
               </span>
             </div>
           </div>
-          <span
-            className={`rounded-full border px-3 py-1 text-xs font-medium ${recommendation.className}`}
-          >
-            {recommendation.label}
-          </span>
+          {recommendation && (
+            <span
+              className={`rounded-full border px-3 py-1 text-xs font-medium ${recommendation.className}`}
+            >
+              {recommendation.label}
+            </span>
+          )}
         </div>
       </header>
 
@@ -150,7 +154,13 @@ export default async function InterviewPage({
         }
       />
 
-      <ScorecardPanel scorecard={interview.scorecard} />
+      {interview.scorecard ? (
+        <ScorecardPanel scorecard={interview.scorecard} />
+      ) : (
+        <p className="text-xs text-[color:var(--muted-2)]">
+          Esta entrevista se analizó antes de incorporar el scorecard.
+        </p>
+      )}
     </div>
   );
 }
