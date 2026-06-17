@@ -76,15 +76,6 @@ export async function analyzeAndStore({
   }
 
   const wantsExisting = typeof positionId === "string" && positionId.length > 0;
-  const wantsNew =
-    typeof positionName === "string" && positionName.trim().length > 0;
-
-  if (!wantsExisting && !wantsNew) {
-    throw new AnalyzeError(
-      400,
-      "Indica la posición: selecciona una existente o crea una nueva."
-    );
-  }
 
   // Validamos la posición antes de gastar la llamada al modelo, pero la
   // creación de posiciones nuevas se hace después del análisis para no dejar
@@ -134,12 +125,19 @@ export async function analyzeAndStore({
   try {
     // upsert por nombre: si la posición "nueva" ya existía, reutilizamos la
     // existente en vez de fallar por el unique constraint.
+    // Nombre de la posición: el indicado (subida manual) o, si no, el rol
+    // reconstruido del contenido por el modelo (ingesta automática).
+    const roleTitle = (analysis as { role?: { title?: string } }).role?.title;
+    const derivedName =
+      (typeof positionName === "string" && positionName.trim()) ||
+      (roleTitle && roleTitle.trim()) ||
+      "Sin clasificar";
     const position = wantsExisting
       ? { id: positionId as string }
       : await prisma.position.upsert({
-          where: { name: (positionName as string).trim() },
+          where: { name: derivedName },
           update: {},
-          create: { name: (positionName as string).trim() },
+          create: { name: derivedName },
           select: { id: true },
         });
 

@@ -30,9 +30,7 @@ export function SyncButton() {
         setMsg(`${procesados} entrevista${plural} nueva${plural} importada${plural}.`);
         router.refresh(); // recarga la lista sin recargar la página
       } else {
-        setMsg(
-          'Sin entrevistas nuevas. Revisa que las reuniones se llamen "Entrevista - Posición - Candidato" y que tengan notas de Gemini.'
-        );
+        setMsg("Sin entrevistas nuevas en tus notas de Gemini recientes.");
       }
       if (errores > 0) {
         setIsError(true);

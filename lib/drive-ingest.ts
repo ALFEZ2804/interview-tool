@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { driveClientForAccount } from "@/lib/google";
 import { analyzeAndStore, AnalyzeError } from "@/lib/analyze";
+import { isInterviewDoc } from "@/lib/classify";
 
 export type IngestSummary = {
   procesados: number;
@@ -11,46 +12,35 @@ export type IngestSummary = {
 
 type Account = { email: string; refreshToken: string; ingestSince: Date };
 
-// Parsea "Entrevista - <Posición> - <Candidato> - <fecha> - Notes by Gemini".
-// Devuelve { positionName, candidateName } o null si no encaja la convención.
-function parseDocName(
-  name: string
-): { positionName: string; candidateName: string } | null {
-  if (!name) return null;
-  // Corta a partir del sufijo de Gemini (" - 2026/06/11 ...").
-  const head = name.split(/\s[-–]\s\d{4}\//)[0];
-  const parts = head.split(/\s[-–]\s/).map((s) => s.trim());
-  // Solo entrevistas: el título debe empezar por "Entrevista".
-  if (!/entrevista/i.test(parts[0] || "")) return null;
-  if (parts.length < 2 || !parts[1]) return null;
-  return { positionName: parts[1], candidateName: parts[2] || "" };
-}
-
 async function ingestAccount(account: Account, summary: IngestSummary) {
   const drive = driveClientForAccount(account);
   const sinceIso = account.ingestSince.toISOString();
 
+  // Todas las notas de Gemini nuevas (el sufijo "Notes by Gemini"/"Notas de
+  // Gemini" lo pone Google, no el headhunter). No filtramos por el nombre de la
+  // reunión: de eso se encarga el clasificador por contenido más abajo.
   const res = await drive.files.list({
     q:
       "mimeType='application/vnd.google-apps.document' " +
-      "and name contains 'Entrevista' and name contains 'Notes by Gemini' " +
+      "and (name contains 'Notes by Gemini' or name contains 'Notas de Gemini') " +
       `and trashed=false and createdTime > '${sinceIso}'`,
     fields: "files(id,name,createdTime)",
-    orderBy: "createdTime desc",
+    orderBy: "createdTime", // ascendente: del más antiguo al más nuevo (para el cursor)
     pageSize: 25,
     spaces: "drive",
   });
 
   const files = res.data.files || [];
+  // Cursor incremental: avanzamos ingestSince hasta el último Doc resuelto para
+  // no reprocesar (ni reclasificar) en cada pasada del cron.
+  let cursor = account.ingestSince;
+  const advance = (created: Date | null) => {
+    if (created && created.getTime() > cursor.getTime()) cursor = created;
+  };
+
   for (const f of files) {
     if (!f.id || !f.name) continue;
-
-    const parsed = parseDocName(f.name);
-    if (!parsed) {
-      summary.saltados++;
-      summary.detalles.push(`skip(nombre): ${f.name}`);
-      continue;
-    }
+    const created = f.createdTime ? new Date(f.createdTime) : null;
 
     // Dedup: no reprocesar un Doc ya ingerido.
     const existing = await prisma.interview.findUnique({
@@ -59,26 +49,56 @@ async function ingestAccount(account: Account, summary: IngestSummary) {
     });
     if (existing) {
       summary.saltados++;
+      advance(created);
       continue;
     }
 
+    // Exportar el texto del Doc.
+    let transcript: string;
     try {
       const exp = await drive.files.export(
         { fileId: f.id, mimeType: "text/plain" },
         { responseType: "text" }
       );
-      const transcript =
+      transcript =
         typeof exp.data === "string" ? exp.data : String(exp.data ?? "");
+    } catch {
+      // Error transitorio de Drive: paramos sin avanzar el cursor para
+      // reintentar este Doc en la próxima pasada.
+      summary.errores++;
+      summary.detalles.push(`export-error (reintentar): ${f.name}`);
+      break;
+    }
 
+    // Filtro barato: ¿es una entrevista?
+    let esEntrevista: boolean;
+    try {
+      esEntrevista = await isInterviewDoc(transcript);
+    } catch {
+      summary.errores++;
+      summary.detalles.push(`clasif-error (reintentar): ${f.name}`);
+      break; // transitorio (OpenAI): reintentar sin avanzar el cursor
+    }
+
+    if (!esEntrevista) {
+      summary.saltados++;
+      summary.detalles.push(`no-entrevista: ${f.name}`);
+      advance(created);
+      continue;
+    }
+
+    // Análisis completo + guardado. La posición y el candidato salen del
+    // contenido (lib/analyze deriva la posición de role.title si no se indica).
+    try {
       await analyzeAndStore({
         transcript,
-        positionName: parsed.positionName,
         sourceDocId: f.id,
         interviewerEmail: account.email,
         date: f.createdTime ?? null, // fecha fiable del Doc, no la del modelo
       });
       summary.procesados++;
-      summary.detalles.push(`ok [${parsed.positionName}] ${f.name}`);
+      summary.detalles.push(`ok: ${f.name}`);
+      advance(created);
     } catch (err) {
       summary.errores++;
       const msg =
@@ -88,7 +108,19 @@ async function ingestAccount(account: Account, summary: IngestSummary) {
             ? err.message
             : String(err);
       summary.detalles.push(`error: ${f.name} :: ${msg}`);
+      if (err instanceof AnalyzeError) {
+        advance(created); // problema del contenido/modelo: no reintentar en bucle
+      } else {
+        break; // transitorio: reintentar sin avanzar el cursor
+      }
     }
+  }
+
+  if (cursor.getTime() > account.ingestSince.getTime()) {
+    await prisma.googleAccount.update({
+      where: { email: account.email },
+      data: { ingestSince: cursor },
+    });
   }
 }
 

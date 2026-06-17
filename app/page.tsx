@@ -36,13 +36,11 @@ export default async function Home() {
         <div>
           <h2 className="text-sm font-semibold">Importar desde Google Drive</h2>
           <p className="text-xs text-[color:var(--muted)] leading-relaxed">
-            Trae tus notas de Gemini de los últimos 90 días. Detecta los Google
-            Docs cuyo nombre siga el formato{" "}
-            <span className="font-mono text-[color:var(--foreground)]">
-              Entrevista - Posición - Candidato
-            </span>
-            . La importación automática se ejecuta periódicamente; este botón la
-            lanza al momento solo para tu cuenta.
+            Trae tus notas de Gemini de los últimos 90 días. La IA detecta
+            automáticamente cuáles son entrevistas (da igual cómo se llame la
+            reunión) y las agrupa por posición. La importación automática se
+            ejecuta periódicamente; este botón la lanza al momento solo para tu
+            cuenta.
           </p>
         </div>
         <SyncButton />
