@@ -1,11 +1,17 @@
 import { NextResponse } from "next/server";
 import { extractText, getDocumentProxy } from "unpdf";
 import { analyzeAndStore, AnalyzeError } from "@/lib/analyze";
+import { getSession } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
 export async function POST(request: Request) {
+  const session = await getSession();
+  if (!session) {
+    return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+  }
+
   const formData = await request.formData();
   const file = formData.get("file");
   const positionId = formData.get("positionId");
@@ -61,6 +67,7 @@ export async function POST(request: Request) {
       transcript,
       positionId: typeof positionId === "string" ? positionId : null,
       positionName: typeof newPositionName === "string" ? newPositionName : null,
+      interviewerEmail: session.email,
     });
     return NextResponse.json(result);
   } catch (err) {

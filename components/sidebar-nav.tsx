@@ -35,18 +35,6 @@ export function SidebarNav({ positions }: { positions: SidebarPosition[] }) {
         Nueva entrevista
       </Link>
 
-      <Link
-        href="/connect"
-        className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition ${
-          pathname === "/connect"
-            ? "bg-[color:var(--accent-soft)] text-[color:var(--accent)]"
-            : "text-[color:var(--muted)] hover:bg-[color:var(--surface)] hover:text-[color:var(--foreground)]"
-        }`}
-      >
-        <PlugIcon className="h-4 w-4" />
-        Conectar Google
-      </Link>
-
       <div>
         <div className="px-3 mb-2 flex items-center justify-between">
           <span className="text-[11px] uppercase tracking-wide text-[color:var(--muted-2)] font-semibold">
@@ -179,23 +167,6 @@ function ChevronIcon({ className = "" }: { className?: string }) {
       aria-hidden
     >
       <path d="m6 9 6 6 6-6" />
-    </svg>
-  );
-}
-
-function PlugIcon({ className = "" }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-      aria-hidden
-    >
-      <path d="M9 2v6M15 2v6M7 8h10v3a5 5 0 0 1-10 0V8zM12 16v6" />
     </svg>
   );
 }

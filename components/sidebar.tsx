@@ -1,13 +1,15 @@
 import { getPositionsWithInterviews } from "@/lib/queries";
 import type { SidebarPosition } from "@/lib/types";
 import { SidebarNav } from "./sidebar-nav";
+import { getSession } from "@/lib/auth";
 
 export async function Sidebar() {
+  const session = await getSession();
   let positions: SidebarPosition[] = [];
   let dbError = false;
 
   try {
-    positions = await getPositionsWithInterviews();
+    positions = await getPositionsWithInterviews(session);
   } catch {
     dbError = true;
   }

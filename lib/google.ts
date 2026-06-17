@@ -2,10 +2,11 @@ import { google } from "googleapis";
 import type { drive_v3 } from "googleapis";
 import { decryptToken } from "@/lib/crypto";
 
-// Solo lectura de Drive + identidad (email) para saber de quién es cada cuenta.
+// Solo lectura de Drive + identidad (email y nombre) para el login.
 const SCOPES = [
   "openid",
   "https://www.googleapis.com/auth/userinfo.email",
+  "https://www.googleapis.com/auth/userinfo.profile",
   "https://www.googleapis.com/auth/drive.readonly",
 ];
 
@@ -24,10 +25,10 @@ function oauthClient(redirectUri: string) {
 // Vercel), para construir el redirect_uri que debe coincidir con el registrado.
 export function originFromRequest(req: Request): string {
   const h = req.headers;
-  const host =
-    h.get("x-forwarded-host") || h.get("host") || "localhost:3000";
+  const host = h.get("x-forwarded-host") || h.get("host") || "localhost:3000";
   const proto =
-    h.get("x-forwarded-proto") || (host.startsWith("localhost") ? "http" : "https");
+    h.get("x-forwarded-proto") ||
+    (host.startsWith("localhost") ? "http" : "https");
   return `${proto}://${host}`;
 }
 
@@ -36,20 +37,25 @@ export function redirectUriFor(origin: string): string {
 }
 
 export function getAuthUrl(redirectUri: string): string {
+  const domain = process.env.ALLOWED_EMAIL_DOMAIN?.trim();
   return oauthClient(redirectUri).generateAuthUrl({
     access_type: "offline", // necesario para recibir refresh token
     prompt: "consent", // fuerza que Google devuelva refresh token cada vez
     scope: SCOPES,
     include_granted_scopes: true,
+    // Sugerencia de dominio en el selector de cuenta (la validación real es en
+    // el callback con emailAllowed()).
+    ...(domain ? { hd: domain } : {}),
   });
 }
 
 export type ExchangeResult = {
   email: string;
+  name?: string;
   refreshToken: string | null;
 };
 
-// Intercambia el code de OAuth por tokens y devuelve el email + refresh token.
+// Intercambia el code de OAuth por tokens y devuelve email, nombre y refresh token.
 export async function exchangeCode(
   code: string,
   redirectUri: string
@@ -62,7 +68,11 @@ export async function exchangeCode(
   if (!data.email) {
     throw new Error("Google no devolvió el email de la cuenta.");
   }
-  return { email: data.email, refreshToken: tokens.refresh_token ?? null };
+  return {
+    email: data.email,
+    name: data.name ?? undefined,
+    refreshToken: tokens.refresh_token ?? null,
+  };
 }
 
 // Cliente Drive autenticado para una cuenta ya conectada. googleapis refresca

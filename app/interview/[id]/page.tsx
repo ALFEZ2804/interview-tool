@@ -9,6 +9,7 @@ import { PitchFeedbackBlock } from "@/components/pitch-feedback";
 import { AgentSuggestionsPanel } from "@/components/agent-suggestions";
 import { InterviewTabs } from "@/components/interview-tabs";
 import { RatingStars } from "@/components/rating-stars";
+import { getSession, interviewVisibilityFilter, isAdmin } from "@/lib/auth";
 
 const statusLabels = {
   completed: "Cerrada",
@@ -22,6 +23,7 @@ export default async function InterviewPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const session = await getSession();
 
   // El ejemplo precargado vive en mock-data, no en la BD.
   const demo = getInterviewById(id);
@@ -36,6 +38,15 @@ export default async function InterviewPage({
       include: { position: { select: { id: true, name: true } } },
     });
     if (!row) notFound();
+
+    if (session && !isAdmin(session.email)) {
+      const filter = interviewVisibilityFilter(session);
+      const allowed =
+        row.interviewerEmail === filter.interviewerEmail &&
+        row.date >= filter.date.gte;
+      if (!allowed) notFound();
+    }
+
     interview = {
       ...(row.analysis as unknown as Omit<Interview, "id">),
       id: row.id,

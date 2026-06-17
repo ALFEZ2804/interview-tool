@@ -1,10 +1,12 @@
 import { getPositionsWithInterviews } from "@/lib/queries";
 import { UploadForm } from "@/components/upload-form";
+import { getSession } from "@/lib/auth";
 
 export default async function Home() {
+  const session = await getSession();
   let positions: { id: string; name: string }[] = [];
   try {
-    positions = (await getPositionsWithInterviews()).map((p) => ({
+    positions = (await getPositionsWithInterviews(session)).map((p) => ({
       id: p.id,
       name: p.name,
     }));

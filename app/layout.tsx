@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import { Sidebar } from "@/components/sidebar";
+import { getSession, isAdmin } from "@/lib/auth";
 import "./globals.css";
 
-// Todas las páginas leen de la BD en cada request: renderizado dinámico
+// Todas las páginas leen de la BD/sesión en cada request: renderizado dinámico
 // para que `next build` no intente conectar a Postgres al prerenderizar.
 export const dynamic = "force-dynamic";
 
@@ -24,49 +25,78 @@ export const metadata: Metadata = {
     "Feedback de entrevistas y sugerencias inteligentes de preguntas para tu próximo proceso.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await getSession();
+
   return (
     <html
       lang="es"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
-        <header className="sticky top-0 z-30 border-b border-[color:var(--border)] bg-[color:var(--background)]/80 backdrop-blur">
-          <div className="flex h-14 items-center justify-between px-6">
-            <Link href="/" className="flex items-center gap-2">
-              <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-[color:var(--accent)] text-black font-bold">
-                N
-              </span>
-              <span className="text-sm font-semibold tracking-tight">
-                Nova{" "}
-                <span className="text-[color:var(--muted)] font-normal">
-                  · Interview Tool
-                </span>
-              </span>
-            </Link>
-            <Link
-              href="/"
-              className="rounded-md bg-[color:var(--accent)] px-3 py-1.5 text-sm font-medium text-black hover:bg-[color:var(--accent-hover)] transition"
-            >
-              Nueva entrevista
-            </Link>
-          </div>
-        </header>
-        <div className="flex flex-1">
-          <Sidebar />
-          <main className="flex-1 min-w-0 px-6 py-10">
-            <div className="mx-auto max-w-4xl">{children}</div>
+        {session ? (
+          <>
+            <header className="sticky top-0 z-30 border-b border-[color:var(--border)] bg-[color:var(--background)]/80 backdrop-blur">
+              <div className="flex h-14 items-center justify-between px-6">
+                <Link href="/" className="flex items-center gap-2">
+                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-[color:var(--accent)] text-black font-bold">
+                    N
+                  </span>
+                  <span className="text-sm font-semibold tracking-tight">
+                    Nova{" "}
+                    <span className="text-[color:var(--muted)] font-normal">
+                      · Interview Tool
+                    </span>
+                  </span>
+                </Link>
+                <div className="flex items-center gap-3">
+                  {isAdmin(session.email) && (
+                    <Link
+                      href="/admin"
+                      className="text-sm text-[color:var(--muted)] hover:text-[color:var(--foreground)] transition"
+                    >
+                      Admin
+                    </Link>
+                  )}
+                  <span className="hidden sm:inline text-xs text-[color:var(--muted-2)]">
+                    {session.email}
+                  </span>
+                  <Link
+                    href="/"
+                    className="rounded-md bg-[color:var(--accent)] px-3 py-1.5 text-sm font-medium text-black hover:bg-[color:var(--accent-hover)] transition"
+                  >
+                    Nueva entrevista
+                  </Link>
+                  <a
+                    href="/api/oauth/google/logout"
+                    className="text-sm text-[color:var(--muted)] hover:text-[color:var(--foreground)] transition"
+                  >
+                    Salir
+                  </a>
+                </div>
+              </div>
+            </header>
+            <div className="flex flex-1">
+              <Sidebar />
+              <main className="flex-1 min-w-0 px-6 py-10">
+                <div className="mx-auto max-w-4xl">{children}</div>
+              </main>
+            </div>
+            <footer className="border-t border-[color:var(--border)] py-6">
+              <div className="px-6 text-xs text-[color:var(--muted-2)]">
+                Construido con el tema Nova
+              </div>
+            </footer>
+          </>
+        ) : (
+          <main className="flex flex-1 items-center justify-center px-6 py-10">
+            {children}
           </main>
-        </div>
-        <footer className="border-t border-[color:var(--border)] py-6">
-          <div className="px-6 text-xs text-[color:var(--muted-2)]">
-            Construido con el tema Nova
-          </div>
-        </footer>
+        )}
       </body>
     </html>
   );

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import type { Interview } from "@/lib/types";
 import { AgentSuggestionsPanel } from "@/components/agent-suggestions";
 import { RatingStars } from "@/components/rating-stars";
+import { getSession, interviewVisibilityFilter, isAdmin } from "@/lib/auth";
 
 const statusLabels = {
   completed: "Cerrada",
@@ -17,10 +18,17 @@ export default async function PositionPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const session = await getSession();
+  const interviewWhere =
+    session && !isAdmin(session.email)
+      ? interviewVisibilityFilter(session)
+      : undefined;
 
   const position = await prisma.position.findUnique({
     where: { id },
-    include: { interviews: { orderBy: { date: "desc" } } },
+    include: {
+      interviews: { where: interviewWhere, orderBy: { date: "desc" } },
+    },
   });
 
   if (!position) notFound();
