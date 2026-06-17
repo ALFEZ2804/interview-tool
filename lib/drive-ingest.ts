@@ -91,19 +91,13 @@ async function ingestAccount(account: Account, summary: IngestSummary) {
   }
 }
 
-// Recorre todas las cuentas conectadas e ingiere sus entrevistas nuevas.
-// Diseñado para 1 o N cuentas sin cambios.
-export async function ingestAllAccounts(): Promise<IngestSummary> {
+async function ingestAccounts(accounts: Account[]): Promise<IngestSummary> {
   const summary: IngestSummary = {
     procesados: 0,
     saltados: 0,
     errores: 0,
     detalles: [],
   };
-
-  const accounts = await prisma.googleAccount.findMany({
-    select: { email: true, refreshToken: true, ingestSince: true },
-  });
 
   for (const account of accounts) {
     try {
@@ -117,4 +111,21 @@ export async function ingestAllAccounts(): Promise<IngestSummary> {
   }
 
   return summary;
+}
+
+// Recorre todas las cuentas conectadas (lo usa el cron). Diseñado para 1 o N.
+export async function ingestAllAccounts(): Promise<IngestSummary> {
+  const accounts = await prisma.googleAccount.findMany({
+    select: { email: true, refreshToken: true, ingestSince: true },
+  });
+  return ingestAccounts(accounts);
+}
+
+// Ingiere solo la cuenta indicada (botón "Sincronizar mis entrevistas" del HH).
+export async function ingestByEmail(email: string): Promise<IngestSummary> {
+  const accounts = await prisma.googleAccount.findMany({
+    where: { email },
+    select: { email: true, refreshToken: true, ingestSince: true },
+  });
+  return ingestAccounts(accounts);
 }

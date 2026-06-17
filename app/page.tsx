@@ -1,5 +1,6 @@
 import { getPositionsWithInterviews } from "@/lib/queries";
 import { UploadForm } from "@/components/upload-form";
+import { SyncButton } from "@/components/sync-button";
 import { getSession } from "@/lib/auth";
 
 export default async function Home() {
@@ -29,6 +30,22 @@ export default async function Home() {
           presentaste el rol, qué tal funcionaron tus preguntas y qué deberías
           probar en la próxima ronda.
         </p>
+      </section>
+
+      <section className="rounded-[var(--radius)] border border-[color:var(--border)] bg-[color:var(--surface)] px-5 py-4 space-y-3">
+        <div>
+          <h2 className="text-sm font-semibold">Importar desde Google Drive</h2>
+          <p className="text-xs text-[color:var(--muted)] leading-relaxed">
+            Trae tus notas de Gemini de los últimos 90 días. Detecta los Google
+            Docs cuyo nombre siga el formato{" "}
+            <span className="font-mono text-[color:var(--foreground)]">
+              Entrevista - Posición - Candidato
+            </span>
+            . La importación automática se ejecuta periódicamente; este botón la
+            lanza al momento solo para tu cuenta.
+          </p>
+        </div>
+        <SyncButton />
       </section>
 
       <UploadForm positions={positions} />
