@@ -49,6 +49,10 @@ export type AnalyzeInput = {
   // Origen de la ingesta automática (Drive): permiten dedup y trazabilidad.
   sourceDocId?: string | null;
   interviewerEmail?: string | null;
+  // Fecha fiable del origen (p. ej. createdTime del Doc de Drive). Si se pasa,
+  // se usa en vez de la que infiere el modelo (que puede equivocarse y dejar la
+  // entrevista fuera de la ventana de visibilidad).
+  date?: string | Date | null;
 };
 
 export type AnalyzeResult = {
@@ -65,6 +69,7 @@ export async function analyzeAndStore({
   positionName,
   sourceDocId,
   interviewerEmail,
+  date,
 }: AnalyzeInput): Promise<AnalyzeResult> {
   if (!process.env.OPENAI_API_KEY) {
     throw new AnalyzeError(500, "Falta OPENAI_API_KEY en .env");
@@ -138,12 +143,20 @@ export async function analyzeAndStore({
           select: { id: true },
         });
 
-    const parsedDate = new Date(analysis.date);
+    // Prioridad de fecha: la del origen (Drive) > la del modelo > hoy.
+    const overrideDate = date ? new Date(date) : null;
+    const modelDate = new Date(analysis.date);
+    const finalDate =
+      overrideDate && !Number.isNaN(overrideDate.getTime())
+        ? overrideDate
+        : !Number.isNaN(modelDate.getTime())
+          ? modelDate
+          : new Date();
     const row = await prisma.interview.create({
       data: {
         positionId: position.id,
         candidateName: analysis.candidate.name,
-        date: Number.isNaN(parsedDate.getTime()) ? new Date() : parsedDate,
+        date: finalDate,
         overallRating: analysis.overallRating,
         status: analysis.status,
         analysis: analysis as unknown as Prisma.InputJsonValue,

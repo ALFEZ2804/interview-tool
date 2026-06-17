@@ -75,6 +75,7 @@ async function ingestAccount(account: Account, summary: IngestSummary) {
         positionName: parsed.positionName,
         sourceDocId: f.id,
         interviewerEmail: account.email,
+        date: f.createdTime ?? null, // fecha fiable del Doc, no la del modelo
       });
       summary.procesados++;
       summary.detalles.push(`ok [${parsed.positionName}] ${f.name}`);
