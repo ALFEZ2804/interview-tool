@@ -68,9 +68,9 @@ export async function GET(req: NextRequest) {
     res.cookies.set(SESSION_COOKIE, token, sessionCookieOptions(secure));
     return res;
   } catch (err) {
-    const msg = err instanceof Error ? err.message : "error_desconocido";
-    return NextResponse.redirect(
-      `${origin}/login?error=${encodeURIComponent(msg)}`
-    );
+    // No filtramos el error crudo (Prisma/red) a la URL ni al usuario: se loguea
+    // en el servidor y se muestra un mensaje genérico en /login.
+    console.error("[oauth/callback]", err);
+    return NextResponse.redirect(`${origin}/login?error=server`);
   }
 }

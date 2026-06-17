@@ -8,6 +8,10 @@ const ERROR_MESSAGES: Record<string, string> = {
   no_refresh_token:
     "No se pudo completar la conexión. Revoca el acceso de la app en tu cuenta de Google e inténtalo de nuevo.",
   missing_code: "Faltó el código de Google. Inténtalo de nuevo.",
+  access_denied:
+    "Has cancelado el inicio de sesión. Puedes intentarlo de nuevo cuando quieras.",
+  server:
+    "Algo ha fallado por nuestra parte. Vuelve a intentarlo en unos segundos; si sigue pasando, avísanos.",
 };
 
 export default async function LoginPage({
@@ -19,8 +23,9 @@ export default async function LoginPage({
   if (session) redirect("/");
 
   const sp = await searchParams;
+  // Fallback sin filtrar el código crudo (puede traer un stack de Prisma/red).
   const msg = sp.error
-    ? ERROR_MESSAGES[sp.error] || `No se pudo iniciar sesión (${sp.error}).`
+    ? ERROR_MESSAGES[sp.error] || "No se pudo iniciar sesión. Vuelve a intentarlo."
     : null;
 
   return (
@@ -38,8 +43,27 @@ export default async function LoginPage({
       </div>
 
       {msg && (
-        <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm">
-          {msg}
+        <div
+          role="alert"
+          className="flex items-start gap-3 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-left"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden
+            className="mt-0.5 h-5 w-5 shrink-0 text-red-400"
+          >
+            <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
+            <path d="M12 9v4" />
+            <path d="M12 17h.01" />
+          </svg>
+          <p className="text-sm leading-relaxed text-[color:var(--foreground)]">
+            {msg}
+          </p>
         </div>
       )}
 
