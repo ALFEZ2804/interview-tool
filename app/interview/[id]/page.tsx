@@ -8,8 +8,10 @@ import { QuestionFeedbackList } from "@/components/question-feedback";
 import { PitchFeedbackBlock } from "@/components/pitch-feedback";
 import { AgentSuggestionsPanel } from "@/components/agent-suggestions";
 import { InterviewTabs } from "@/components/interview-tabs";
+import { ScorecardPanel } from "@/components/scorecard";
 import { RatingStars } from "@/components/rating-stars";
 import { getSession, interviewVisibilityFilter, isAdmin } from "@/lib/auth";
+import { recommendationConfig } from "@/lib/recommendation";
 
 const statusLabels = {
   completed: "Cerrada",
@@ -54,6 +56,7 @@ export default async function InterviewPage({
     position = row.position;
   }
 
+  const recommendation = recommendationConfig[interview.scorecard.recommendation];
   const date = new Date(interview.date).toLocaleDateString("es-ES", {
     day: "2-digit",
     month: "long",
@@ -103,16 +106,23 @@ export default async function InterviewPage({
             </div>
           </div>
         </div>
-        <div className="text-right">
-          <div className="text-[11px] uppercase tracking-wide text-[color:var(--muted-2)]">
-            Valoración global
+        <div className="flex flex-col items-end gap-2">
+          <div className="text-right">
+            <div className="text-[11px] uppercase tracking-wide text-[color:var(--muted-2)]">
+              Valoración global
+            </div>
+            <div className="mt-1 flex items-center justify-end gap-2">
+              <RatingStars value={interview.overallRating} size="md" />
+              <span className="text-sm font-medium">
+                {interview.overallRating}/5
+              </span>
+            </div>
           </div>
-          <div className="mt-1 flex items-center justify-end gap-2">
-            <RatingStars value={interview.overallRating} size="md" />
-            <span className="text-sm font-medium">
-              {interview.overallRating}/5
-            </span>
-          </div>
+          <span
+            className={`rounded-full border px-3 py-1 text-xs font-medium ${recommendation.className}`}
+          >
+            {recommendation.label}
+          </span>
         </div>
       </header>
 
@@ -139,6 +149,8 @@ export default async function InterviewPage({
           />
         }
       />
+
+      <ScorecardPanel scorecard={interview.scorecard} />
     </div>
   );
 }

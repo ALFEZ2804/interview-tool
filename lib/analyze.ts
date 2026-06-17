@@ -36,11 +36,13 @@ Criterios importantes:
    - technical: preguntas técnicas profundas sobre arquitectura/decisiones/herramientas (3-5).
    - business: preguntas sobre criterio de negocio, prioridades y comunicación ejecutiva (3-5).
 
-6. Tono: profesional, directo, español de España. Sin emojis. Sin marketing. Honesto: si una pregunta es mala, dilo.
+6. scorecard: evalúa al CANDIDATO con 3-6 competencias calibradas al rol detectado (ej. profundidad técnica, comunicación, ownership, fit con el equipo). Cada competencia lleva score 1-5, un peso en % y un rationale anclado a evidencia concreta del transcript (no genérico). Los pesos DEBEN sumar exactamente 100. La recommendation resume el conjunto: "strong-yes", "yes", "mixed" o "no", y debe ser coherente con overallRating (si el rating es bajo, no puede ser "strong-yes").
 
-7. Fechas: si el transcript no indica fecha, usa la fecha de hoy en formato YYYY-MM-DD. status: usa "completed" salvo que sea evidente que la entrevista fue cortada.
+7. Tono: profesional, directo, español de España. Sin emojis. Sin marketing. Honesto: si una pregunta es mala, dilo.
 
-8. Si el transcript es claramente muy corto, pobre o no parece una entrevista, igualmente cumple el schema con tus mejores inferencias y refleja en overallSummary que el input fue insuficiente.`;
+8. Fechas: si el transcript no indica fecha, usa la fecha de hoy en formato YYYY-MM-DD. status: usa "completed" salvo que sea evidente que la entrevista fue cortada.
+
+9. Si el transcript es claramente muy corto, pobre o no parece una entrevista, igualmente cumple el schema con tus mejores inferencias y refleja en overallSummary que el input fue insuficiente.`;
 
 export type AnalyzeInput = {
   transcript: string;
