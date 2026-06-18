@@ -1,6 +1,10 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { getPositionsWithInterviews, getRecentInterviews } from "@/lib/queries";
+import {
+  getPositionsWithInterviews,
+  getRecentInterviews,
+  getSeniorityFacets,
+} from "@/lib/queries";
 import { getSession } from "@/lib/auth";
 import { InterviewCard } from "@/components/interview-card";
 import { SearchBar } from "@/components/search-bar";
@@ -8,24 +12,30 @@ import {
   PositionFilters,
   type PositionFilter,
 } from "@/components/position-filters";
+import {
+  SeniorityFilters,
+  type SeniorityFacet,
+} from "@/components/seniority-filters";
 
 export default async function Home({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; position?: string }>;
+  searchParams: Promise<{ q?: string; position?: string; seniority?: string }>;
 }) {
   const session = await getSession();
   const sp = await searchParams;
   const q = sp.q?.trim() || undefined;
   const positionId = sp.position || undefined;
+  const seniority = sp.seniority || undefined;
 
   let interviews: Awaited<ReturnType<typeof getRecentInterviews>> = [];
   let positionFilters: PositionFilter[] = [];
+  let seniorityFacets: SeniorityFacet[] = [];
   let dbError = false;
 
   try {
-    [interviews, positionFilters] = await Promise.all([
-      getRecentInterviews(session, { q, positionId }),
+    [interviews, positionFilters, seniorityFacets] = await Promise.all([
+      getRecentInterviews(session, { q, positionId, seniority }),
       getPositionsWithInterviews(session).then((ps) =>
         ps.map((p) => ({
           id: p.id,
@@ -33,13 +43,14 @@ export default async function Home({
           count: p.interviews.length,
         }))
       ),
+      getSeniorityFacets(session),
     ]);
   } catch {
     dbError = true;
   }
 
   const activePosition = positionFilters.find((p) => p.id === positionId);
-  const isSearching = Boolean(q || positionId);
+  const isSearching = Boolean(q || positionId || seniority);
 
   return (
     <div className="space-y-8">
@@ -60,13 +71,25 @@ export default async function Home({
         </Suspense>
       )}
 
-      {!dbError && positionFilters.length > 0 && (
-        <PositionFilters
-          positions={positionFilters}
-          activeId={positionId}
-          q={q}
-        />
-      )}
+      {!dbError &&
+        (positionFilters.length > 0 || seniorityFacets.length >= 2) && (
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+            {positionFilters.length > 0 && (
+              <PositionFilters
+                positions={positionFilters}
+                activeId={positionId}
+              />
+            )}
+            {/* El filtro de nivel solo aparece cuando hay al menos dos niveles
+                distintos entre las entrevistas; con uno solo no aportaría. */}
+            {seniorityFacets.length >= 2 && (
+              <SeniorityFilters
+                facets={seniorityFacets}
+                activeLevel={seniority}
+              />
+            )}
+          </div>
+        )}
 
       {dbError ? (
         <DbErrorState />

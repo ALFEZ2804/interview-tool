@@ -83,6 +83,7 @@ export interface RecentInterview {
   avatarInitials: string;
   summary: string;
   durationMinutes: number;
+  seniorityLevel: SeniorityLevel | null;
 }
 
 export type Recommendation = "strong-yes" | "yes" | "mixed" | "no";

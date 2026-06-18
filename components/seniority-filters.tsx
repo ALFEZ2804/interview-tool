@@ -2,22 +2,23 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { seniorityLabel } from "@/lib/seniority";
+import type { SeniorityLevel } from "@/lib/types";
 
-export interface PositionFilter {
-  id: string;
-  name: string;
+export interface SeniorityFacet {
+  level: SeniorityLevel;
   count: number;
 }
 
-// Filtro de posición de la home como desplegable con búsqueda interna. Mantiene
-// el comportamiento anterior (navega a /?position=ID conservando la búsqueda de
-// texto), pero ocupa menos sitio cuando hay muchas posiciones.
-export function PositionFilters({
-  positions,
-  activeId,
+// Filtro de nivel de la home como desplegable con búsqueda interna, igual que el
+// de posición. Navega a /?seniority=NIVEL conservando el resto de filtros
+// (búsqueda de texto y posición) que ya estuvieran en la URL.
+export function SeniorityFilters({
+  facets,
+  activeLevel,
 }: {
-  positions: PositionFilter[];
-  activeId?: string;
+  facets: SeniorityFacet[];
+  activeLevel?: string;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -25,31 +26,30 @@ export function PositionFilters({
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
 
-  const active = positions.find((p) => p.id === activeId);
+  const active = facets.find((f) => f.level === activeLevel);
   const totalCount = useMemo(
-    () => positions.reduce((sum, p) => sum + p.count, 0),
-    [positions]
+    () => facets.reduce((sum, f) => sum + f.count, 0),
+    [facets]
   );
 
   const term = search.trim().toLowerCase();
   const filtered = term
-    ? positions.filter((p) => p.name.toLowerCase().includes(term))
-    : positions;
+    ? facets.filter((f) => seniorityLabel(f.level).toLowerCase().includes(term))
+    : facets;
 
-  // Conserva el resto de filtros (búsqueda de texto, nivel) al cambiar de
-  // posición: solo toca el parámetro "position".
-  function hrefFor(positionId?: string) {
+  // Conserva el resto de filtros al cambiar de nivel: solo toca "seniority".
+  function hrefFor(level?: string) {
     const sp = new URLSearchParams(searchParams.toString());
-    if (positionId) sp.set("position", positionId);
-    else sp.delete("position");
+    if (level) sp.set("seniority", level);
+    else sp.delete("seniority");
     const s = sp.toString();
     return s ? `/?${s}` : "/";
   }
 
-  function choose(positionId?: string) {
+  function choose(level?: string) {
     setOpen(false);
     setSearch("");
-    router.push(hrefFor(positionId));
+    router.push(hrefFor(level));
   }
 
   // Cerrar al hacer clic fuera o con Escape.
@@ -71,7 +71,7 @@ export function PositionFilters({
     };
   }, [open]);
 
-  if (positions.length === 0) return null;
+  if (facets.length === 0) return null;
 
   return (
     <div ref={ref} className="relative inline-block">
@@ -81,18 +81,18 @@ export function PositionFilters({
         aria-haspopup="listbox"
         aria-expanded={open}
         className={`inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium transition ${
-          activeId
+          activeLevel
             ? "border-[color:var(--accent-border)] bg-[color:var(--accent-soft)] text-[color:var(--accent)]"
             : "border-[color:var(--border)] bg-[color:var(--surface)] text-[color:var(--foreground)] hover:border-[color:var(--border-strong)]"
         }`}
       >
         <FilterIcon className="h-3.5 w-3.5 shrink-0" />
         <span className="max-w-[14rem] truncate">
-          {active ? active.name : "Todas las posiciones"}
+          {active ? seniorityLabel(active.level) : "Todos los niveles"}
         </span>
         <span
           className={`rounded-full px-1.5 py-0.5 text-[10px] tabular-nums ${
-            activeId
+            activeLevel
               ? "bg-[color:var(--accent)]/15 text-[color:var(--accent)]"
               : "bg-[color:var(--surface-2)] text-[color:var(--muted-2)]"
           }`}
@@ -107,7 +107,7 @@ export function PositionFilters({
       </button>
 
       {open && (
-        <div className="absolute left-0 z-20 mt-2 w-72 overflow-hidden rounded-md border border-[color:var(--border)] bg-[color:var(--surface)] shadow-2xl">
+        <div className="absolute left-0 z-20 mt-2 w-64 overflow-hidden rounded-md border border-[color:var(--border)] bg-[color:var(--surface)] shadow-2xl">
           <div className="border-b border-[color:var(--border)] p-2">
             <div className="relative">
               <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[color:var(--muted-2)]" />
@@ -116,8 +116,8 @@ export function PositionFilters({
                 type="search"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Buscar posición…"
-                aria-label="Buscar posición"
+                placeholder="Buscar nivel…"
+                aria-label="Buscar nivel"
                 className="w-full rounded-md border border-[color:var(--border)] bg-[color:var(--background)] py-1.5 pl-8 pr-2 text-sm text-[color:var(--foreground)] outline-none transition placeholder:text-[color:var(--muted-2)] focus:border-[color:var(--accent)] [&::-webkit-search-cancel-button]:hidden"
               />
             </div>
@@ -125,19 +125,19 @@ export function PositionFilters({
           <ul role="listbox" className="max-h-72 overflow-y-auto p-1">
             {!term && (
               <Option
-                label="Todas las posiciones"
+                label="Todos los niveles"
                 count={totalCount}
-                active={!activeId}
+                active={!activeLevel}
                 onSelect={() => choose(undefined)}
               />
             )}
-            {filtered.map((p) => (
+            {filtered.map((f) => (
               <Option
-                key={p.id}
-                label={p.name}
-                count={p.count}
-                active={activeId === p.id}
-                onSelect={() => choose(p.id)}
+                key={f.level}
+                label={seniorityLabel(f.level)}
+                count={f.count}
+                active={activeLevel === f.level}
+                onSelect={() => choose(f.level)}
               />
             ))}
             {filtered.length === 0 && (

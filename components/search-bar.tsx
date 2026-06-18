@@ -20,6 +20,16 @@ export function SearchBar() {
     setValue(urlQ);
   }
 
+  // Construye la URL conservando el resto de filtros (posición, nivel) que ya
+  // estuvieran en la URL: solo toca el parámetro "q".
+  function urlWithQuery(trimmed: string) {
+    const sp = new URLSearchParams(searchParams.toString());
+    if (trimmed) sp.set("q", trimmed);
+    else sp.delete("q");
+    const s = sp.toString();
+    return s ? `/?${s}` : "/";
+  }
+
   // Navegación debounced al teclear. El guard evita navegar de más: si lo
   // tecleado ya coincide con la URL, no se vuelve a navegar.
   useEffect(() => {
@@ -30,7 +40,7 @@ export function SearchBar() {
     const trimmed = value.trim();
     if (trimmed === urlQ) return;
     const t = setTimeout(() => {
-      router.push(trimmed ? `/?q=${encodeURIComponent(trimmed)}` : "/");
+      router.push(urlWithQuery(trimmed));
     }, 350);
     return () => clearTimeout(t);
     // Solo debe dispararse al cambiar el valor tecleado.
@@ -39,13 +49,12 @@ export function SearchBar() {
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
-    const trimmed = value.trim();
-    router.push(trimmed ? `/?q=${encodeURIComponent(trimmed)}` : "/");
+    router.push(urlWithQuery(value.trim()));
   }
 
   function clear() {
     setValue("");
-    router.push("/");
+    router.push(urlWithQuery(""));
   }
 
   return (

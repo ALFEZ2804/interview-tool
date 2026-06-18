@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { RecentInterview } from "@/lib/types";
 import { RatingStars } from "@/components/rating-stars";
+import { seniorityLabel } from "@/lib/seniority";
 
 const statusLabels: Record<string, string> = {
   completed: "Cerrada",
@@ -15,8 +16,15 @@ export function InterviewCard({
   interview: RecentInterview;
   index?: number;
 }) {
-  const { id, candidateName, positionName, headline, summary, date } =
-    interview;
+  const {
+    id,
+    candidateName,
+    positionName,
+    headline,
+    summary,
+    date,
+    seniorityLevel,
+  } = interview;
 
   return (
     <Link
@@ -61,8 +69,15 @@ export function InterviewCard({
       )}
 
       <div className="mt-4 flex items-center justify-between gap-2 pt-3 text-[11px] text-[color:var(--muted-2)]">
-        <span className="inline-flex max-w-[60%] items-center gap-1.5 truncate rounded-full border border-[color:var(--accent-border)] bg-[color:var(--accent-soft)] px-2.5 py-1 font-medium text-[color:var(--accent)]">
-          <span className="truncate">{positionName}</span>
+        <span className="flex min-w-0 items-center gap-1.5">
+          <span className="inline-flex max-w-[11rem] items-center gap-1.5 truncate rounded-full border border-[color:var(--accent-border)] bg-[color:var(--accent-soft)] px-2.5 py-1 font-medium text-[color:var(--accent)]">
+            <span className="truncate">{positionName}</span>
+          </span>
+          {seniorityLevel && (
+            <span className="inline-flex shrink-0 items-center rounded-full border border-[color:var(--border)] bg-[color:var(--surface-2)] px-2 py-1 font-medium text-[color:var(--muted)]">
+              {seniorityLabel(seniorityLevel)}
+            </span>
+          )}
         </span>
         <span className="shrink-0">
           {statusLabels[interview.status] ?? interview.status} ·{" "}
