@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/db";
 import { driveClientForAccount } from "@/lib/google";
 import { analyzeAndStore, AnalyzeError } from "@/lib/analyze";
-import { isInterviewDoc } from "@/lib/classify";
+import { isInterviewDoc, isInterviewTitle } from "@/lib/classify";
 
 export type IngestSummary = {
   procesados: number;
@@ -70,14 +70,21 @@ async function ingestAccount(account: Account, summary: IngestSummary) {
       break;
     }
 
-    // Filtro barato: ¿es una entrevista?
+    // Nivel 1 (por título): si el nombre de la reunión sigue la convención de
+    // entrevista, es entrevista directa, sin gastar el clasificador. Nivel 2
+    // (por contenido): si no casa el título, decide el clasificador de IA —para
+    // el histórico y reuniones que no se nombraron con la convención.
     let esEntrevista: boolean;
-    try {
-      esEntrevista = await isInterviewDoc(transcript);
-    } catch {
-      summary.errores++;
-      summary.detalles.push(`clasif-error (reintentar): ${f.name}`);
-      break; // transitorio (OpenAI): reintentar sin avanzar el cursor
+    if (isInterviewTitle(f.name)) {
+      esEntrevista = true;
+    } else {
+      try {
+        esEntrevista = await isInterviewDoc(transcript);
+      } catch {
+        summary.errores++;
+        summary.detalles.push(`clasif-error (reintentar): ${f.name}`);
+        break; // transitorio (OpenAI): reintentar sin avanzar el cursor
+      }
     }
 
     if (!esEntrevista) {
