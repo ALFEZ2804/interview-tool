@@ -1,10 +1,11 @@
 import { getPositionsWithInterviews } from "@/lib/queries";
 import type { SidebarPosition } from "@/lib/types";
 import { SidebarNav } from "./sidebar-nav";
-import { getSession } from "@/lib/auth";
+import { getSession, isAdmin } from "@/lib/auth";
 
 export async function Sidebar() {
   const session = await getSession();
+  const admin = session ? isAdmin(session.email) : false;
   let positions: SidebarPosition[] = [];
   let dbError = false;
 
@@ -24,7 +25,7 @@ export async function Sidebar() {
             <code className="font-mono">.env</code>.
           </div>
         ) : (
-          <SidebarNav positions={positions} />
+          <SidebarNav positions={positions} isAdmin={admin} />
         )}
       </div>
     </aside>

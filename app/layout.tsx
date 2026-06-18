@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import { Sidebar } from "@/components/sidebar";
-import { getSession, isAdmin } from "@/lib/auth";
+import { NovaMark } from "@/components/nova-logo";
+import { getSession } from "@/lib/auth";
 import "./globals.css";
 
 // Todas las páginas leen de la BD/sesión en cada request: renderizado dinámico
@@ -44,8 +45,8 @@ export default async function RootLayout({
             <header className="sticky top-0 z-30 border-b border-[color:var(--border)] bg-[color:var(--background)]/75 backdrop-blur-md">
               <div className="flex h-14 items-center gap-4 px-6">
                 <Link href="/" className="flex shrink-0 items-center gap-2">
-                  <span className="nova-mark inline-flex h-7 w-7 items-center justify-center rounded-lg bg-[color:var(--accent)] text-black font-bold">
-                    N
+                  <span className="nova-mark inline-flex h-7 w-7 items-center justify-center overflow-hidden rounded-lg">
+                    <NovaMark className="h-full w-full" />
                   </span>
                   <span className="text-sm font-semibold tracking-tight">
                     Nova{" "}
@@ -56,29 +57,16 @@ export default async function RootLayout({
                 </Link>
 
                 <div className="ml-auto flex shrink-0 items-center gap-3">
-                  {isAdmin(session.email) && (
-                    <Link
-                      href="/admin"
-                      className="hidden text-sm text-[color:var(--muted)] transition hover:text-[color:var(--foreground)] md:inline"
-                    >
-                      Admin
-                    </Link>
-                  )}
                   <span className="hidden text-xs text-[color:var(--muted-2)] lg:inline">
                     {session.email}
                   </span>
-                  <Link
-                    href="/new"
-                    className="inline-flex items-center gap-1.5 rounded-md bg-[color:var(--accent)] px-3 py-1.5 text-sm font-medium text-black transition hover:bg-[color:var(--accent-hover)]"
-                  >
-                    <span className="text-base leading-none">+</span>
-                    <span className="hidden sm:inline">Nueva entrevista</span>
-                  </Link>
                   <a
                     href="/api/oauth/google/logout"
-                    className="text-sm text-[color:var(--muted)] transition hover:text-[color:var(--foreground)]"
+                    aria-label="Cerrar sesión"
+                    title="Cerrar sesión"
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-md text-[color:var(--muted)] transition hover:bg-[color:var(--surface)] hover:text-[color:var(--foreground)]"
                   >
-                    Salir
+                    <LogoutIcon className="h-4 w-4" />
                   </a>
                 </div>
               </div>
@@ -89,11 +77,6 @@ export default async function RootLayout({
                 <div className="mx-auto max-w-5xl">{children}</div>
               </main>
             </div>
-            <footer className="border-t border-[color:var(--border)] py-6">
-              <div className="px-6 text-xs text-[color:var(--muted-2)]">
-                Construido con el tema Nova
-              </div>
-            </footer>
           </>
         ) : (
           <main className="flex flex-1 items-center justify-center px-6 py-10">
@@ -102,5 +85,24 @@ export default async function RootLayout({
         )}
       </body>
     </html>
+  );
+}
+
+function LogoutIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden
+    >
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+      <path d="m16 17 5-5-5-5" />
+      <path d="M21 12H9" />
+    </svg>
   );
 }
