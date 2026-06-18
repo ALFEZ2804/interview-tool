@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Suspense } from "react";
 import Link from "next/link";
 import { Sidebar } from "@/components/sidebar";
+import { HeaderSearch } from "@/components/header-search";
 import { getSession, isAdmin } from "@/lib/auth";
 import "./globals.css";
 
@@ -37,43 +39,50 @@ export default async function RootLayout({
       lang="es"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-background text-foreground">
+      <body className="relative min-h-full flex flex-col bg-background text-foreground">
+        <div aria-hidden className="app-atmosphere" />
         {session ? (
           <>
-            <header className="sticky top-0 z-30 border-b border-[color:var(--border)] bg-[color:var(--background)]/80 backdrop-blur">
-              <div className="flex h-14 items-center justify-between px-6">
-                <Link href="/" className="flex items-center gap-2">
-                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-[color:var(--accent)] text-black font-bold">
+            <header className="sticky top-0 z-30 border-b border-[color:var(--border)] bg-[color:var(--background)]/75 backdrop-blur-md">
+              <div className="flex h-14 items-center gap-4 px-6">
+                <Link href="/" className="flex shrink-0 items-center gap-2">
+                  <span className="nova-mark inline-flex h-7 w-7 items-center justify-center rounded-lg bg-[color:var(--accent)] text-black font-bold">
                     N
                   </span>
-                  <span className="text-sm font-semibold tracking-tight">
+                  <span className="hidden text-sm font-semibold tracking-tight sm:inline">
                     Nova{" "}
                     <span className="text-[color:var(--muted)] font-normal">
                       · Interview Tool
                     </span>
                   </span>
                 </Link>
-                <div className="flex items-center gap-3">
+
+                <Suspense fallback={<div className="hidden flex-1 sm:block" />}>
+                  <HeaderSearch />
+                </Suspense>
+
+                <div className="ml-auto flex shrink-0 items-center gap-3">
                   {isAdmin(session.email) && (
                     <Link
                       href="/admin"
-                      className="text-sm text-[color:var(--muted)] hover:text-[color:var(--foreground)] transition"
+                      className="hidden text-sm text-[color:var(--muted)] transition hover:text-[color:var(--foreground)] md:inline"
                     >
                       Admin
                     </Link>
                   )}
-                  <span className="hidden sm:inline text-xs text-[color:var(--muted-2)]">
+                  <span className="hidden text-xs text-[color:var(--muted-2)] lg:inline">
                     {session.email}
                   </span>
                   <Link
-                    href="/"
-                    className="rounded-md bg-[color:var(--accent)] px-3 py-1.5 text-sm font-medium text-black hover:bg-[color:var(--accent-hover)] transition"
+                    href="/new"
+                    className="inline-flex items-center gap-1.5 rounded-md bg-[color:var(--accent)] px-3 py-1.5 text-sm font-medium text-black transition hover:bg-[color:var(--accent-hover)]"
                   >
-                    Nueva entrevista
+                    <span className="text-base leading-none">+</span>
+                    <span className="hidden sm:inline">Nueva entrevista</span>
                   </Link>
                   <a
                     href="/api/oauth/google/logout"
-                    className="text-sm text-[color:var(--muted)] hover:text-[color:var(--foreground)] transition"
+                    className="text-sm text-[color:var(--muted)] transition hover:text-[color:var(--foreground)]"
                   >
                     Salir
                   </a>
@@ -83,7 +92,7 @@ export default async function RootLayout({
             <div className="flex flex-1">
               <Sidebar />
               <main className="flex-1 min-w-0 px-6 py-10">
-                <div className="mx-auto max-w-4xl">{children}</div>
+                <div className="mx-auto max-w-5xl">{children}</div>
               </main>
             </div>
             <footer className="border-t border-[color:var(--border)] py-6">

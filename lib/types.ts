@@ -57,6 +57,22 @@ export interface SidebarPosition {
   interviews: SidebarInterview[];
 }
 
+// Card del dashboard de entrevistas (home). Aplana lo que la card necesita del
+// análisis JSON para no arrastrar todo el objeto Interview al cliente.
+export interface RecentInterview {
+  id: string;
+  candidateName: string;
+  positionId: string;
+  positionName: string;
+  date: string;
+  overallRating: number;
+  status: InterviewStatus | string;
+  headline: string;
+  avatarInitials: string;
+  summary: string;
+  durationMinutes: number;
+}
+
 export type Recommendation = "strong-yes" | "yes" | "mixed" | "no";
 
 export interface CompetencyScore {

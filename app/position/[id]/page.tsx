@@ -72,7 +72,7 @@ export default async function PositionPage({
             recomendarte preguntas.
           </p>
           <Link
-            href="/"
+            href="/new"
             className="inline-block rounded-md bg-[color:var(--accent)] text-black text-sm font-medium px-4 py-2 hover:bg-[color:var(--accent-hover)] transition"
           >
             Subir la primera entrevista

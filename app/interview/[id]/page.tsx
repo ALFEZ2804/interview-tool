@@ -77,7 +77,7 @@ export default async function InterviewPage({
           </Link>
         ) : (
           <Link
-            href="/"
+            href="/new"
             className="hover:text-[color:var(--foreground)] transition"
           >
             ← Subir otra entrevista

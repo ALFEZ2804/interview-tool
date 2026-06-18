@@ -1,15 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import type { SidebarInterview, SidebarPosition } from "@/lib/types";
+import { SyncButton } from "@/components/sync-button";
 
 export function SidebarNav({ positions }: { positions: SidebarPosition[] }) {
   const pathname = usePathname();
   const router = useRouter();
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
-  const [query, setQuery] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
   // Entrevista pendiente de confirmar borrado (null = diálogo cerrado).
   const [pending, setPending] = useState<SidebarInterview | null>(null);
@@ -26,25 +26,6 @@ export function SidebarNav({ positions }: { positions: SidebarPosition[] }) {
       return next;
     });
   }
-
-  // Filtra por nombre de candidato y por nombre de posición. Si coincide la
-  // posición, se muestran todas sus entrevistas; si coincide solo un candidato,
-  // se conserva la posición pero recortada a las entrevistas que casan.
-  const q = query.trim().toLowerCase();
-  const filtered = useMemo(() => {
-    if (!q) return positions;
-    return positions
-      .map((p) => {
-        if (p.name.toLowerCase().includes(q)) return p;
-        return {
-          ...p,
-          interviews: p.interviews.filter((i) =>
-            i.candidateName.toLowerCase().includes(q)
-          ),
-        };
-      })
-      .filter((p) => p.name.toLowerCase().includes(q) || p.interviews.length > 0);
-  }, [positions, q]);
 
   function askDelete(interview: SidebarInterview) {
     setDeleteError(null);
@@ -89,39 +70,41 @@ export function SidebarNav({ positions }: { positions: SidebarPosition[] }) {
   return (
     <>
     <nav className="space-y-4">
-      <Link
-        href="/"
-        className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition ${
-          pathname === "/"
-            ? "bg-[color:var(--accent-soft)] text-[color:var(--accent)]"
-            : "text-[color:var(--muted)] hover:bg-[color:var(--surface)] hover:text-[color:var(--foreground)]"
-        }`}
-      >
-        <PlusIcon className="h-4 w-4" />
-        Nueva entrevista
-      </Link>
+      <div className="space-y-0.5">
+        <Link
+          href="/"
+          className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition ${
+            pathname === "/"
+              ? "bg-[color:var(--accent-soft)] text-[color:var(--accent)]"
+              : "text-[color:var(--muted)] hover:bg-[color:var(--surface)] hover:text-[color:var(--foreground)]"
+          }`}
+        >
+          <GridIcon className="h-4 w-4" />
+          Entrevistas
+        </Link>
 
-      {positions.length > 0 && (
-        <div className="relative px-1">
-          <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[color:var(--muted-2)]" />
-          <input
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Buscar por nombre o posición"
-            aria-label="Buscar entrevistas por nombre o posición"
-            className="w-full rounded-md border border-[color:var(--border)] bg-[color:var(--surface)] py-2 pl-8 pr-3 text-sm text-[color:var(--foreground)] outline-none transition placeholder:text-[color:var(--muted-2)] focus:border-[color:var(--accent)]"
-          />
-        </div>
-      )}
+        <Link
+          href="/new"
+          className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition ${
+            pathname === "/new"
+              ? "bg-[color:var(--accent-soft)] text-[color:var(--accent)]"
+              : "text-[color:var(--muted)] hover:bg-[color:var(--surface)] hover:text-[color:var(--foreground)]"
+          }`}
+        >
+          <PlusIcon className="h-4 w-4" />
+          Nueva entrevista
+        </Link>
 
-      <div>
+        <SyncButton />
+      </div>
+
+      <div className="border-t border-[color:var(--border)] pt-4">
         <div className="px-3 mb-2 flex items-center justify-between">
           <span className="text-[11px] uppercase tracking-wide text-[color:var(--muted-2)] font-semibold">
             Posiciones
           </span>
           <span className="text-[11px] text-[color:var(--muted-2)]">
-            {filtered.length}
+            {positions.length}
           </span>
         </div>
 
@@ -129,15 +112,10 @@ export function SidebarNav({ positions }: { positions: SidebarPosition[] }) {
           <p className="px-3 text-xs text-[color:var(--muted-2)] leading-relaxed">
             Aún no hay posiciones. Sube tu primera entrevista y crea una.
           </p>
-        ) : filtered.length === 0 ? (
-          <p className="px-3 text-xs text-[color:var(--muted-2)] leading-relaxed">
-            Sin resultados para “{query.trim()}”.
-          </p>
         ) : (
           <ul className="space-y-1">
-            {filtered.map((p) => {
-              // Con búsqueda activa siempre se expanden para ver los resultados.
-              const isCollapsed = q ? false : collapsed.has(p.id);
+            {positions.map((p) => {
+              const isCollapsed = collapsed.has(p.id);
               const positionActive = pathname === `/position/${p.id}`;
               return (
                 <li key={p.id}>
@@ -372,7 +350,7 @@ function ChevronIcon({ className = "" }: { className?: string }) {
   );
 }
 
-function SearchIcon({ className = "" }: { className?: string }) {
+function GridIcon({ className = "" }: { className?: string }) {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -384,8 +362,10 @@ function SearchIcon({ className = "" }: { className?: string }) {
       className={className}
       aria-hidden
     >
-      <circle cx="11" cy="11" r="8" />
-      <path d="m21 21-4.3-4.3" />
+      <rect x="3" y="3" width="7" height="7" rx="1.5" />
+      <rect x="14" y="3" width="7" height="7" rx="1.5" />
+      <rect x="3" y="14" width="7" height="7" rx="1.5" />
+      <rect x="14" y="14" width="7" height="7" rx="1.5" />
     </svg>
   );
 }

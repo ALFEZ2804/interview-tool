@@ -45,24 +45,25 @@ export function SyncButton() {
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-3">
+    <div className="space-y-1.5">
       <button
         type="button"
         onClick={run}
         disabled={loading}
-        className="inline-flex items-center gap-2 rounded-md border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-sm font-medium transition hover:bg-[color:var(--accent-soft)] disabled:opacity-60"
+        title="Trae tus notas de Gemini de Google Drive de los últimos 90 días"
+        className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-[color:var(--muted)] transition hover:bg-[color:var(--surface)] hover:text-[color:var(--foreground)] disabled:opacity-60"
       >
         <RefreshIcon className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-        {loading ? "Sincronizando…" : "Sincronizar mis entrevistas"}
+        {loading ? "Sincronizando…" : "Sincronizar entrevistas"}
       </button>
       {msg && (
-        <span
-          className={`text-xs ${
-            isError ? "text-red-400" : "text-[color:var(--muted)]"
+        <p
+          className={`px-3 text-[11px] leading-relaxed ${
+            isError ? "text-[color:var(--danger)]" : "text-[color:var(--muted-2)]"
           }`}
         >
           {msg}
-        </span>
+        </p>
       )}
     </div>
   );

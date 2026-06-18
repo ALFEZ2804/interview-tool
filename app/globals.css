@@ -80,3 +80,53 @@ body {
 .scrollbar-thin::-webkit-scrollbar-thumb:hover {
   background: var(--muted-2);
 }
+
+/* Capa de ambiente: resplandor teal sutil detrás de todo el contenido. Da
+   profundidad sin competir con las cards. Vive en z-index -1, sobre el color
+   plano del body pero por debajo del contenido. */
+.app-atmosphere {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      55rem 38rem at 50% -12rem,
+      rgba(14, 176, 164, 0.13),
+      transparent 70%
+    ),
+    radial-gradient(
+      36rem 28rem at 100% 0,
+      rgba(14, 176, 164, 0.05),
+      transparent 60%
+    );
+}
+
+/* Brillo de la marca Nova en el header. */
+.nova-mark {
+  box-shadow: 0 0 0 1px var(--accent-border),
+    0 4px 16px -4px rgba(14, 176, 164, 0.55);
+}
+
+/* Aparición escalonada de las cards. Solo opacidad para no interferir con el
+   translate del hover (un animation con fill-mode forwards ganaría a la clase
+   de hover de Tailwind si también tocara transform). */
+@keyframes card-reveal {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.card-reveal {
+  opacity: 0;
+  animation: card-reveal 0.45s ease forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-reveal {
+    animation: none;
+    opacity: 1;
+  }
+}
