@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getInterviewById } from "@/lib/mock-data";
 import type { Interview } from "@/lib/types";
+import { BackButton } from "@/components/back-button";
 import { RolePresentation } from "@/components/role-presentation";
 import { QuestionFeedbackList } from "@/components/question-feedback";
 import { PitchFeedbackBlock } from "@/components/pitch-feedback";
@@ -67,21 +68,20 @@ export default async function InterviewPage({
 
   return (
     <div className="space-y-8">
-      <nav className="text-xs text-[color:var(--muted)] flex items-center gap-3">
-        {position ? (
-          <Link
-            href={`/position/${position.id}`}
-            className="hover:text-[color:var(--foreground)] transition"
-          >
-            ← {position.name}
-          </Link>
-        ) : (
-          <Link
-            href="/new"
-            className="hover:text-[color:var(--foreground)] transition"
-          >
-            ← Subir otra entrevista
-          </Link>
+      <nav className="text-xs text-[color:var(--muted)] flex items-center gap-2">
+        <BackButton fallbackHref={position ? `/position/${position.id}` : "/new"} />
+        {position && (
+          <>
+            <span aria-hidden className="text-[color:var(--muted-2)]">
+              ·
+            </span>
+            <Link
+              href={`/position/${position.id}`}
+              className="hover:text-[color:var(--foreground)] transition"
+            >
+              {position.name}
+            </Link>
+          </>
         )}
         {demo && (
           <span className="rounded-full border border-[color:var(--accent-border)] bg-[color:var(--accent-soft)] px-2 py-0.5 text-[10px] uppercase tracking-wide text-[color:var(--accent)] font-semibold">

@@ -1,7 +1,9 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { getPositionsWithInterviews, getRecentInterviews } from "@/lib/queries";
 import { getSession } from "@/lib/auth";
 import { InterviewCard } from "@/components/interview-card";
+import { SearchBar } from "@/components/search-bar";
 import {
   PositionFilters,
   type PositionFilter,
@@ -47,6 +49,16 @@ export default async function Home({
         positionName={activePosition?.name}
         count={interviews.length}
       />
+
+      {!dbError && (
+        <Suspense
+          fallback={
+            <div className="h-[3.25rem] w-full rounded-[var(--radius)] border border-[color:var(--border)] bg-[color:var(--surface)]" />
+          }
+        >
+          <SearchBar />
+        </Suspense>
+      )}
 
       {!dbError && positionFilters.length > 0 && (
         <PositionFilters
@@ -110,7 +122,7 @@ function Hero({
           ? `${count} ${count === 1 ? "entrevista" : "entrevistas"}${
               positionName && q ? ` en ${positionName}` : ""
             }.`
-          : "Tus últimas entrevistas analizadas. Busca arriba o filtra por posición."}
+          : "Tus últimas entrevistas analizadas. Usa el buscador o filtra por posición."}
       </p>
     </section>
   );

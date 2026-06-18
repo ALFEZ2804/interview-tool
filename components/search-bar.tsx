@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-export function HeaderSearch() {
+export function SearchBar() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const urlQ = searchParams.get("q") ?? "";
@@ -49,28 +49,24 @@ export function HeaderSearch() {
   }
 
   return (
-    <form
-      onSubmit={submit}
-      role="search"
-      className="relative hidden flex-1 sm:block sm:max-w-md"
-    >
-      <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[color:var(--muted-2)]" />
+    <form onSubmit={submit} role="search" className="relative w-full">
+      <SearchIcon className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[color:var(--muted-2)]" />
       <input
         type="search"
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        placeholder="Buscar entrevista…"
+        placeholder="Buscar entrevista por nombre o posición…"
         aria-label="Buscar entrevista por nombre o posición"
-        className="w-full rounded-full border border-[color:var(--border)] bg-[color:var(--surface)] py-2 pl-9 pr-9 text-sm text-[color:var(--foreground)] outline-none transition placeholder:text-[color:var(--muted-2)] focus:border-[color:var(--accent-border)] focus:bg-[color:var(--surface-2)] focus:ring-2 focus:ring-[color:var(--accent-soft)] [&::-webkit-search-cancel-button]:hidden"
+        className="w-full rounded-[var(--radius)] border border-[color:var(--border)] bg-[color:var(--surface)] py-3 pl-12 pr-11 text-sm text-[color:var(--foreground)] outline-none transition placeholder:text-[color:var(--muted-2)] focus:border-[color:var(--accent-border)] focus:bg-[color:var(--surface-2)] focus:ring-2 focus:ring-[color:var(--accent-soft)] md:text-base [&::-webkit-search-cancel-button]:hidden"
       />
       {value && (
         <button
           type="button"
           onClick={clear}
           aria-label="Limpiar búsqueda"
-          className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-full p-1 text-[color:var(--muted-2)] transition hover:bg-[color:var(--surface-2)] hover:text-[color:var(--foreground)]"
+          className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1.5 text-[color:var(--muted-2)] transition hover:bg-[color:var(--surface-2)] hover:text-[color:var(--foreground)]"
         >
-          <CloseIcon className="h-3.5 w-3.5" />
+          <CloseIcon className="h-4 w-4" />
         </button>
       )}
     </form>

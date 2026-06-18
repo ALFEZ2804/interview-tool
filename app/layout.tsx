@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { Suspense } from "react";
 import Link from "next/link";
 import { Sidebar } from "@/components/sidebar";
-import { HeaderSearch } from "@/components/header-search";
 import { getSession, isAdmin } from "@/lib/auth";
 import "./globals.css";
 
@@ -49,17 +47,13 @@ export default async function RootLayout({
                   <span className="nova-mark inline-flex h-7 w-7 items-center justify-center rounded-lg bg-[color:var(--accent)] text-black font-bold">
                     N
                   </span>
-                  <span className="hidden text-sm font-semibold tracking-tight sm:inline">
+                  <span className="text-sm font-semibold tracking-tight">
                     Nova{" "}
                     <span className="text-[color:var(--muted)] font-normal">
                       · Interview Tool
                     </span>
                   </span>
                 </Link>
-
-                <Suspense fallback={<div className="hidden flex-1 sm:block" />}>
-                  <HeaderSearch />
-                </Suspense>
 
                 <div className="ml-auto flex shrink-0 items-center gap-3">
                   {isAdmin(session.email) && (
