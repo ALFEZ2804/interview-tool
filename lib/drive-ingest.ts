@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/db";
 import { driveClientForAccount } from "@/lib/google";
 import { analyzeAndStore, AnalyzeError } from "@/lib/analyze";
-import { isInterviewDoc, isInterviewTitle } from "@/lib/classify";
+import { looksLikeInterview, isInterviewTitle } from "@/lib/classify";
 
 export type IngestSummary = {
   procesados: number;
@@ -70,26 +70,16 @@ async function ingestAccount(account: Account, summary: IngestSummary) {
       break;
     }
 
-    // Nivel 1 (por título): si el nombre de la reunión sigue la convención de
-    // entrevista, es entrevista directa, sin gastar el clasificador. Nivel 2
-    // (por contenido): si no casa el título, decide el clasificador de IA —para
-    // el histórico y reuniones que no se nombraron con la convención.
-    let esEntrevista: boolean;
-    if (isInterviewTitle(f.name)) {
-      esEntrevista = true;
-    } else {
-      try {
-        esEntrevista = await isInterviewDoc(transcript);
-      } catch {
-        summary.errores++;
-        summary.detalles.push(`clasif-error (reintentar): ${f.name}`);
-        break; // transitorio (OpenAI): reintentar sin avanzar el cursor
-      }
-    }
+    // Nivel 1 (título) y Nivel 2 (heurística LOCAL, sin OpenAI). El contenido de
+    // reuniones que no son entrevistas se procesa solo en nuestro servidor para
+    // decidir y nunca se envía a OpenAI; solo el transcript ya confirmado como
+    // entrevista llega al análisis.
+    const byTitle = isInterviewTitle(f.name);
+    const esEntrevista = byTitle || looksLikeInterview(transcript);
 
     if (!esEntrevista) {
       summary.saltados++;
-      summary.detalles.push(`no-entrevista: ${f.name}`);
+      summary.detalles.push(`no-entrevista (local): ${f.name}`);
       advance(created);
       continue;
     }
@@ -104,7 +94,7 @@ async function ingestAccount(account: Account, summary: IngestSummary) {
         date: f.createdTime ?? null, // fecha fiable del Doc, no la del modelo
       });
       summary.procesados++;
-      summary.detalles.push(`ok: ${f.name}`);
+      summary.detalles.push(`ok (${byTitle ? "titulo" : "local"}): ${f.name}`);
       advance(created);
     } catch (err) {
       summary.errores++;
