@@ -1,5 +1,10 @@
 import { prisma } from "@/lib/db";
-import type { Interview, RecentInterview, SidebarPosition } from "@/lib/types";
+import type {
+  Interview,
+  RecentInterview,
+  SidebarInterview,
+  SidebarPosition,
+} from "@/lib/types";
 import {
   type Session,
   interviewVisibilityFilter,
@@ -25,6 +30,7 @@ export async function getPositionsWithInterviews(
           candidateName: true,
           date: true,
           overallRating: true,
+          seniorityLevel: true,
         },
       },
     },
@@ -43,6 +49,7 @@ export async function getPositionsWithInterviews(
       candidateName: i.candidateName,
       date: i.date.toISOString(),
       overallRating: i.overallRating,
+      seniorityLevel: i.seniorityLevel as SidebarInterview["seniorityLevel"],
     })),
   }));
 }

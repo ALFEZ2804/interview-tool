@@ -1,6 +1,10 @@
 import { redirect } from "next/navigation";
 import { getSession, isAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import {
+  PositionManager,
+  type ManagedPosition,
+} from "@/components/position-manager";
 
 export const dynamic = "force-dynamic";
 
@@ -10,11 +14,25 @@ export default async function AdminPage() {
   if (!isAdmin(session.email)) redirect("/");
 
   let accounts: { email: string; createdAt: Date; ingestSince: Date }[] = [];
+  let positions: ManagedPosition[] = [];
   try {
     accounts = await prisma.googleAccount.findMany({
       orderBy: { createdAt: "asc" },
       select: { email: true, createdAt: true, ingestSince: true },
     });
+    const rows = await prisma.position.findMany({
+      orderBy: { name: "asc" },
+      select: {
+        id: true,
+        name: true,
+        _count: { select: { interviews: true } },
+      },
+    });
+    positions = rows.map((p) => ({
+      id: p.id,
+      name: p.name,
+      interviewCount: p._count.interviews,
+    }));
   } catch {
     // Sin BD la página sigue cargando vacía.
   }
@@ -67,6 +85,22 @@ export default async function AdminPage() {
           </table>
         </div>
       )}
+
+      <section className="space-y-4 border-t border-[color:var(--border)] pt-8">
+        <div className="space-y-2">
+          <div className="text-[11px] uppercase tracking-wide text-[color:var(--accent)] font-semibold">
+            Puestos
+          </div>
+          <h2 className="text-2xl font-semibold tracking-tight">
+            Consolidar puestos duplicados
+          </h2>
+          <p className="text-sm text-[color:var(--muted)]">
+            Fusiona puestos que sean el mismo rol bajo nombres distintos
+            (p. ej. «Backend Engineer» y «Backend Developer»).
+          </p>
+        </div>
+        <PositionManager positions={positions} />
+      </section>
     </div>
   );
 }

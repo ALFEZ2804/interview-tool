@@ -61,8 +61,24 @@ const interviewQuestionSchema = z.object({
 });
 
 const rolePresentationSchema = z.object({
-  title: z.string().min(1),
-  seniority: z.string().min(1),
+  title: z
+    .string()
+    .min(1)
+    .describe(
+      "Nombre del ROL BASE, SIN el nivel de seniority. Ej: 'Backend Engineer' (no 'Senior Backend Engineer'), 'Product Manager' (no 'Junior PM'). Normaliza sinónimos al término más estándar."
+    ),
+  seniority: z
+    .string()
+    .min(1)
+    .describe(
+      "Seniority tal como se presentó, en texto libre para mostrar (ej. 'Senior · IC4', 'Mid-level')."
+    ),
+  // Bucket canónico para agrupar entrevistas por nivel dentro de un mismo rol.
+  seniorityLevel: z
+    .enum(["intern", "junior", "mid", "senior", "lead", "unspecified"])
+    .describe(
+      "Nivel canónico para agrupar: intern, junior, mid, senior, lead. Usa 'unspecified' solo si el transcript no permite inferirlo. 'lead' cubre lead/staff/principal."
+    ),
   team: z.string().min(1),
   location: z.string().min(1),
   focus: z.enum(["technical", "business", "mixed"]),

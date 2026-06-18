@@ -2,9 +2,19 @@ export type InterviewStatus = "completed" | "pending-review" | "drafting";
 
 export type RoleFocus = "technical" | "business" | "mixed";
 
+// Niveles canónicos para agrupar entrevistas por seniority dentro de un puesto.
+export type SeniorityLevel =
+  | "intern"
+  | "junior"
+  | "mid"
+  | "senior"
+  | "lead"
+  | "unspecified";
+
 export interface RolePresentation {
   title: string;
   seniority: string;
+  seniorityLevel: SeniorityLevel;
   team: string;
   location: string;
   focus: RoleFocus;
@@ -49,6 +59,8 @@ export interface SidebarInterview {
   candidateName: string;
   date: string;
   overallRating: number;
+  // Bucket de seniority para subagrupar dentro del puesto. Null = sin especificar.
+  seniorityLevel: SeniorityLevel | null;
 }
 
 export interface SidebarPosition {

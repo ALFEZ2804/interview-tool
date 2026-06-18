@@ -22,6 +22,10 @@ model Interview {
   date          DateTime @default(now())
   overallRating Int
   status        String
+  // Nivel de seniority canónico (bucket) para agrupar entrevistas dentro de un
+  // mismo Position en subcarpetas. Lo deriva el análisis (lib/schema.ts#role.seniorityLevel).
+  // Null = "Sin especificar" (entrevistas previas a este campo).
+  seniorityLevel String?
   // Análisis completo generado por el agente (shape de lib/types.ts#Interview).
   // Se guarda como JSON para poder evolucionar el análisis sin migrar la BD.
   analysis      Json

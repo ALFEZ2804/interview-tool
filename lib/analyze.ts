@@ -3,6 +3,7 @@ import { createOpenAI } from "@ai-sdk/openai";
 import { interviewSchema } from "@/lib/schema";
 import { prisma } from "@/lib/db";
 import type { Prisma } from "@/lib/generated/prisma/client";
+import { findByNormalizedName, semanticMatchPosition } from "@/lib/positions";
 
 // Error con código HTTP asociado, para que cada ruta (subida manual o ingesta
 // automática) lo traduzca a su respuesta sin repetir la lógica de negocio.
@@ -23,7 +24,7 @@ Recibes el transcript completo de una entrevista entre un entrevistador (la pers
 
 Criterios importantes:
 
-1. Evalúa la POSICIÓN tal como la presentó el entrevistador (no inventes una posición distinta). Reconstruye role.title, responsabilidades, requisitos y nice-to-have a partir de lo que dijo el entrevistador en el pitch inicial. Si el rol no se presenta explícitamente, infiere de forma conservadora.
+1. Evalúa la POSICIÓN tal como la presentó el entrevistador (no inventes una posición distinta). Reconstruye role.title, responsabilidades, requisitos y nice-to-have a partir de lo que dijo el entrevistador en el pitch inicial. Si el rol no se presenta explícitamente, infiere de forma conservadora. IMPORTANTE: role.title es el ROL BASE SIN el nivel de seniority (ej. "Backend Engineer", no "Senior Backend Engineer") y normalizado al término más estándar; el nivel va aparte en role.seniorityLevel (intern/junior/mid/senior/lead, o unspecified si no se puede inferir). role.seniority sigue siendo el texto libre para mostrar.
 
 2. El feedback al pitch debe evaluar al ENTREVISTADOR: claridad, gancho, honestidad, tiempo invertido en stack vs. equipo, si vendió el reto técnico real, etc. Da 1-5 strengths e 1-5 improvements concretos. La sección agentReadings divide la lectura del agente en positive y negative (cada uno con 1-4 puntos).
 
@@ -105,11 +106,12 @@ export async function analyzeAndStore({
 
   const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY });
   const modelName = process.env.OPENAI_MODEL || "gpt-4o-mini";
+  const model = openai(modelName);
 
   let analysis;
   try {
     const { object } = await generateObject({
-      model: openai(modelName),
+      model,
       schema: interviewSchema,
       schemaName: "InterviewAnalysis",
       system: SYSTEM_PROMPT,
@@ -125,23 +127,52 @@ export async function analyzeAndStore({
   }
 
   try {
-    // upsert por nombre: si la posición "nueva" ya existía, reutilizamos la
-    // existente en vez de fallar por el unique constraint.
-    // Nombre de la posición: el indicado (subida manual) o, si no, el rol
-    // reconstruido del contenido por el modelo (ingesta automática).
-    const roleTitle = (analysis as { role?: { title?: string } }).role?.title;
-    const derivedName =
-      (typeof positionName === "string" && positionName.trim()) ||
-      (roleTitle && roleTitle.trim()) ||
-      "Sin clasificar";
-    const position = wantsExisting
-      ? { id: positionId as string }
-      : await prisma.position.upsert({
-          where: { name: derivedName },
-          update: {},
-          create: { name: derivedName },
-          select: { id: true },
-        });
+    // Resolución del puesto al que se asigna la entrevista. Tres orígenes:
+    //  - positionId (el HH eligió uno existente en la subida manual): tal cual.
+    //  - positionName (el HH tecleó un nombre nuevo): solo match DETERMINISTA
+    //    contra el catálogo (no fusión semántica silenciosa: ya le guía el
+    //    datalist del formulario y, si crea un casi-duplicado, se limpia con el
+    //    merge de /admin). Así no archivamos la entrevista bajo un puesto que el
+    //    HH no eligió.
+    //  - ingesta automática (sin id ni nombre): el rol base que reconstruyó el
+    //    modelo (role.title), determinista + match semántico para consolidar
+    //    sinónimos sin intervención humana.
+    let position: { id: string };
+    if (wantsExisting) {
+      position = { id: positionId as string };
+    } else {
+      const manualName =
+        typeof positionName === "string" ? positionName.trim() : "";
+      const roleTitle = analysis.role?.title?.trim();
+      const candidate = manualName || roleTitle || "Sin clasificar";
+
+      const existing = await prisma.position.findMany({
+        select: { id: true, name: true },
+      });
+      let matched = findByNormalizedName(candidate, existing);
+      // El match semántico (que puede fusionar "Backend Engineer" con "Backend
+      // Developer") solo se aplica en la ingesta automática, nunca en manual.
+      if (!matched && !manualName) {
+        matched = await semanticMatchPosition({ candidate, existing, model });
+      }
+
+      position = matched
+        ? { id: matched.id }
+        : await prisma.position.upsert({
+            // upsert por si dos ingestas concurrentes derivan el mismo nombre.
+            where: { name: candidate },
+            update: {},
+            create: { name: candidate },
+            select: { id: true },
+          });
+    }
+
+    // Bucket de seniority para subagrupar dentro del puesto. "unspecified" se
+    // guarda como null para tener una única representación de "sin especificar".
+    const seniorityLevel =
+      analysis.role?.seniorityLevel && analysis.role.seniorityLevel !== "unspecified"
+        ? analysis.role.seniorityLevel
+        : null;
 
     // Prioridad de fecha: la del origen (Drive) > la del modelo > hoy.
     const overrideDate = date ? new Date(date) : null;
@@ -159,6 +190,7 @@ export async function analyzeAndStore({
         date: finalDate,
         overallRating: analysis.overallRating,
         status: analysis.status,
+        seniorityLevel,
         analysis: analysis as unknown as Prisma.InputJsonValue,
         sourceDocId: sourceDocId ?? null,
         interviewerEmail: interviewerEmail ?? null,

@@ -3,6 +3,7 @@
 import { useState, type DragEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { normalizePositionName } from "@/lib/normalize";
 
 const NEW_POSITION = "__new__";
 
@@ -46,7 +47,17 @@ export function UploadForm({
       const form = new FormData();
       form.append("file", file);
       if (selected === NEW_POSITION) {
-        form.append("newPositionName", newName.trim());
+        // Si lo tecleado coincide (normalizado) con un puesto existente, lo
+        // tratamos como selección de ese puesto en vez de crear un casi-
+        // duplicado. El datalist ya guía hacia los nombres existentes.
+        const match = positions.find(
+          (p) => normalizePositionName(p.name) === normalizePositionName(newName)
+        );
+        if (match) {
+          form.append("positionId", match.id);
+        } else {
+          form.append("newPositionName", newName.trim());
+        }
       } else {
         form.append("positionId", selected);
       }
@@ -151,17 +162,28 @@ export function UploadForm({
           </select>
 
           {selected === NEW_POSITION && (
-            <input
-              type="text"
-              value={newName}
-              disabled={uploading}
-              onChange={(e) => {
-                setNewName(e.target.value);
-                if (state.kind === "error") setState({ kind: "idle" });
-              }}
-              placeholder="Nombre de la posición, ej. CPO"
-              className="flex-1 rounded-md border border-[color:var(--border-strong)] bg-[color:var(--background)] px-3 py-2 text-sm text-[color:var(--foreground)] placeholder:text-[color:var(--muted-2)] focus:border-[color:var(--accent)] focus:outline-none"
-            />
+            <>
+              <input
+                type="text"
+                value={newName}
+                disabled={uploading}
+                list="existing-position-names"
+                autoComplete="off"
+                onChange={(e) => {
+                  setNewName(e.target.value);
+                  if (state.kind === "error") setState({ kind: "idle" });
+                }}
+                placeholder="Nombre de la posición, ej. CPO"
+                className="flex-1 rounded-md border border-[color:var(--border-strong)] bg-[color:var(--background)] px-3 py-2 text-sm text-[color:var(--foreground)] placeholder:text-[color:var(--muted-2)] focus:border-[color:var(--accent)] focus:outline-none"
+              />
+              {/* Sugiere los puestos existentes mientras teclea, para no crear
+                  duplicados (p. ej. "Backend Developer" vs "Backend Engineer"). */}
+              <datalist id="existing-position-names">
+                {positions.map((p) => (
+                  <option key={p.id} value={p.name} />
+                ))}
+              </datalist>
+            </>
           )}
         </div>
       </div>

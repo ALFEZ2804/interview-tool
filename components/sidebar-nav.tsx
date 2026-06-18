@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import type { SidebarInterview, SidebarPosition } from "@/lib/types";
+import { groupBySeniority } from "@/lib/seniority";
 import { SyncButton } from "@/components/sync-button";
 
 export function SidebarNav({
@@ -93,6 +94,47 @@ export function SidebarNav({
     } finally {
       setDeletingId(null);
     }
+  }
+
+  // Render de una entrevista (item hoja). Se reutiliza en el listado plano y
+  // dentro de cada subgrupo de seniority. Cierra sobre pathname/deletingId/etc.
+  function renderInterview(i: SidebarInterview) {
+    const active = pathname === `/interview/${i.id}`;
+    const isDeleting = deletingId === i.id;
+    return (
+      <li
+        key={i.id}
+        className={`group/item flex items-center rounded transition ${
+          active
+            ? "bg-[color:var(--accent-soft)]"
+            : "hover:bg-[color:var(--surface)]"
+        } ${isDeleting ? "opacity-50" : ""}`}
+      >
+        <Link
+          href={`/interview/${i.id}`}
+          className={`flex flex-1 min-w-0 items-center justify-between gap-2 px-2 py-1.5 text-xs transition ${
+            active
+              ? "text-[color:var(--accent)]"
+              : "text-[color:var(--muted)] group-hover/item:text-[color:var(--foreground)]"
+          }`}
+        >
+          <span className="truncate">{i.candidateName}</span>
+          <span className="shrink-0 text-[10px] text-[color:var(--muted-2)]">
+            {formatShortDate(i.date)} · {i.overallRating}/5
+          </span>
+        </Link>
+        <button
+          type="button"
+          onClick={() => askDelete(i)}
+          disabled={isDeleting}
+          aria-label={`Eliminar entrevista de ${i.candidateName}`}
+          title="Eliminar entrevista"
+          className="shrink-0 p-1.5 text-[color:var(--muted-2)] opacity-0 transition hover:text-[color:var(--danger)] focus:opacity-100 group-hover/item:opacity-100 disabled:cursor-not-allowed"
+        >
+          <TrashIcon className="h-3.5 w-3.5" />
+        </button>
+      </li>
+    );
   }
 
   return (
@@ -213,57 +255,69 @@ export function SidebarNav({
                         </button>
                       </div>
 
-                      {!isCollapsed && (
-                        <ul className="mt-0.5 mb-1 ml-3 border-l border-[color:var(--border)] pl-2 space-y-0.5">
-                          {p.interviews.length === 0 ? (
-                            <li className="px-2 py-1 text-xs text-[color:var(--muted-2)]">
-                              Sin entrevistas
-                            </li>
-                          ) : (
-                            p.interviews.map((i) => {
-                              const active = pathname === `/interview/${i.id}`;
-                              const isDeleting = deletingId === i.id;
-                              return (
-                                <li
-                                  key={i.id}
-                                  className={`group/item flex items-center rounded transition ${
-                                    active
-                                      ? "bg-[color:var(--accent-soft)]"
-                                      : "hover:bg-[color:var(--surface)]"
-                                  } ${isDeleting ? "opacity-50" : ""}`}
-                                >
-                                  <Link
-                                    href={`/interview/${i.id}`}
-                                    className={`flex flex-1 min-w-0 items-center justify-between gap-2 px-2 py-1.5 text-xs transition ${
-                                      active
-                                        ? "text-[color:var(--accent)]"
-                                        : "text-[color:var(--muted)] group-hover/item:text-[color:var(--foreground)]"
-                                    }`}
-                                  >
-                                    <span className="truncate">
-                                      {i.candidateName}
-                                    </span>
-                                    <span className="shrink-0 text-[10px] text-[color:var(--muted-2)]">
-                                      {formatShortDate(i.date)} ·{" "}
-                                      {i.overallRating}/5
-                                    </span>
-                                  </Link>
-                                  <button
-                                    type="button"
-                                    onClick={() => askDelete(i)}
-                                    disabled={isDeleting}
-                                    aria-label={`Eliminar entrevista de ${i.candidateName}`}
-                                    title="Eliminar entrevista"
-                                    className="shrink-0 p-1.5 text-[color:var(--muted-2)] opacity-0 transition hover:text-[color:var(--danger)] focus:opacity-100 group-hover/item:opacity-100 disabled:cursor-not-allowed"
-                                  >
-                                    <TrashIcon className="h-3.5 w-3.5" />
-                                  </button>
+                      {!isCollapsed &&
+                        (() => {
+                          if (p.interviews.length === 0) {
+                            return (
+                              <ul className="mt-0.5 mb-1 ml-3 border-l border-[color:var(--border)] pl-2 space-y-0.5">
+                                <li className="px-2 py-1 text-xs text-[color:var(--muted-2)]">
+                                  Sin entrevistas
                                 </li>
-                              );
-                            })
-                          )}
-                        </ul>
-                      )}
+                              </ul>
+                            );
+                          }
+                          const groups = groupBySeniority(
+                            p.interviews,
+                            (i) => i.seniorityLevel
+                          );
+                          // Con un solo nivel, listado plano (no añadir un
+                          // subnivel "Sin especificar" cuando no aporta).
+                          if (groups.length <= 1) {
+                            return (
+                              <ul className="mt-0.5 mb-1 ml-3 border-l border-[color:var(--border)] pl-2 space-y-0.5">
+                                {p.interviews.map(renderInterview)}
+                              </ul>
+                            );
+                          }
+                          return (
+                            <ul className="mt-0.5 mb-1 ml-3 border-l border-[color:var(--border)] pl-2 space-y-0.5">
+                              {groups.map((g) => {
+                                const groupKey = `${p.id}::${g.level}`;
+                                const groupCollapsed = q
+                                  ? false
+                                  : collapsed.has(groupKey);
+                                return (
+                                  <li key={g.level}>
+                                    <button
+                                      type="button"
+                                      onClick={() => toggle(groupKey)}
+                                      aria-expanded={!groupCollapsed}
+                                      aria-label={`${groupCollapsed ? "Mostrar" : "Ocultar"} entrevistas ${g.label}`}
+                                      className="flex w-full items-center justify-between gap-2 rounded px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[color:var(--muted-2)] transition hover:text-[color:var(--foreground)]"
+                                    >
+                                      <span className="truncate">
+                                        {g.label}
+                                      </span>
+                                      <span className="flex shrink-0 items-center gap-1">
+                                        {g.items.length}
+                                        <ChevronIcon
+                                          className={`h-3 w-3 transition-transform ${
+                                            groupCollapsed ? "-rotate-90" : ""
+                                          }`}
+                                        />
+                                      </span>
+                                    </button>
+                                    {!groupCollapsed && (
+                                      <ul className="ml-1.5 border-l border-[color:var(--border)] pl-2 space-y-0.5">
+                                        {g.items.map(renderInterview)}
+                                      </ul>
+                                    )}
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          );
+                        })()}
                     </li>
                   );
                 })}

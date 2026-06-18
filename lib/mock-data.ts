@@ -19,6 +19,7 @@ export const interviews: Interview[] = [
     role: {
       title: "Senior Backend Engineer",
       seniority: "Senior · IC4",
+      seniorityLevel: "senior",
       team: "Platform & Data",
       location: "Madrid · híbrido",
       focus: "technical",
