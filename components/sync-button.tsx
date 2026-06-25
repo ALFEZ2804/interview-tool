@@ -7,6 +7,8 @@ type Summary = {
   procesados: number;
   saltados: number;
   errores: number;
+  // El back para con gracia si agota su presupuesto de tiempo: quedan docs.
+  incompleto?: boolean;
 };
 
 export function SyncButton() {
@@ -17,28 +19,77 @@ export function SyncButton() {
 
   async function run() {
     setLoading(true);
-    setMsg(null);
     setIsError(false);
-    try {
-      const res = await fetch("/api/sync", { method: "POST" });
-      const data = (await res.json()) as Summary & { error?: string };
-      if (!res.ok) throw new Error(data?.error || "No se pudo sincronizar.");
+    setMsg("Sincronizando…");
 
-      const { procesados, errores } = data;
-      if (procesados > 0) {
-        const plural = procesados === 1 ? "" : "s";
-        setMsg(`${procesados} entrevista${plural} nueva${plural} importada${plural}.`);
-        router.refresh(); // recarga la lista sin recargar la página
+    // El back procesa 1 entrevista por llamada para no acercarse al límite de 60s
+    // de Vercel. Aquí encadenamos pasadas hasta vaciar la cola, mostrando el
+    // progreso. El tope y la salvaguarda de "sin trabajo" evitan bucles infinitos.
+    const MAX_PASADAS = 60;
+    let totalProcesados = 0;
+    let totalErrores = 0;
+    let sinTrabajo = 0;
+
+    try {
+      for (let i = 0; i < MAX_PASADAS; i++) {
+        const res = await fetch("/api/sync", { method: "POST" });
+
+        // No asumimos que la respuesta sea JSON: si la plataforma corta la
+        // función, Vercel responde un 504 en texto plano ("An error occurred…")
+        // y un res.json() directo reventaría con "Unexpected token 'A'…".
+        const raw = await res.text();
+        let data: (Summary & { error?: string }) | null = null;
+        try {
+          data = raw ? (JSON.parse(raw) as Summary & { error?: string }) : null;
+        } catch {
+          data = null;
+        }
+        if (!res.ok || !data) {
+          throw new Error(
+            data?.error ||
+              "La sincronización se interrumpió (la plataforma tardó demasiado). Vuelve a pulsar para continuar donde se quedó."
+          );
+        }
+
+        totalProcesados += data.procesados;
+        totalErrores += data.errores;
+        if (data.procesados > 0) router.refresh(); // refleja las nuevas al momento
+
+        // Si una pasada ni procesa ni salta nada pero dice que queda trabajo, algo
+        // está atascado (p. ej. un Doc que falla al exportar). Cortamos tras un par.
+        if (data.procesados === 0 && data.saltados === 0) {
+          if (++sinTrabajo >= 2) break;
+        } else {
+          sinTrabajo = 0;
+        }
+
+        if (!data.incompleto) break;
+
+        const plural = totalProcesados === 1 ? "" : "s";
+        setMsg(
+          `Sincronizando… ${totalProcesados} importada${plural}, hay más en cola.`
+        );
+      }
+
+      const plural = totalProcesados === 1 ? "" : "s";
+      if (totalProcesados > 0) {
+        setMsg(`${totalProcesados} entrevista${plural} importada${plural}.`);
+        router.refresh();
       } else {
         setMsg("Sin entrevistas nuevas en tus notas de Gemini recientes.");
       }
-      if (errores > 0) {
+      if (totalErrores > 0) {
         setIsError(true);
-        setMsg((m) => `${m ?? ""} (${errores} con error)`.trim());
+        setMsg((m) => `${m ?? ""} (${totalErrores} con error)`.trim());
       }
     } catch (e) {
       setIsError(true);
-      setMsg(e instanceof Error ? e.message : "No se pudo sincronizar.");
+      if (totalProcesados > 0) router.refresh();
+      const base =
+        totalProcesados > 0
+          ? `${totalProcesados} importada${totalProcesados === 1 ? "" : "s"} antes de cortarse. `
+          : "";
+      setMsg(base + (e instanceof Error ? e.message : "No se pudo sincronizar."));
     } finally {
       setLoading(false);
     }

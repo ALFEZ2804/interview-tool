@@ -8,11 +8,32 @@ export type IngestSummary = {
   saltados: number;
   errores: number;
   detalles: string[];
+  // true si paramos por presupuesto de tiempo y quedan documentos por procesar.
+  // El cursor (ingestSince) queda guardado en lo ya resuelto, así que la
+  // siguiente pasada (clic manual o cron) continúa donde lo dejamos.
+  incompleto?: boolean;
 };
 
 type Account = { email: string; refreshToken: string; ingestSince: Date };
 
-async function ingestAccount(account: Account, summary: IngestSummary) {
+const PAGE_SIZE = 25;
+
+// En Hobby, maxDuration es 60s y una sola llamada al modelo consume casi todo ese
+// tiempo (medido: ~24s una entrevista de 12 preguntas, hasta ~50s las largas).
+// Para garantizar que la función NUNCA hace timeout —y que por tanto el cursor
+// siempre llega a guardarse— procesamos como mucho UNA entrevista por invocación
+// y dejamos que el botón encadene las pasadas que hagan falta.
+const MAX_ANALYSES_PER_RUN = 1;
+
+// Red de seguridad por tiempo: si los documentos saltados (no-entrevista o ya
+// procesados) consumieran demasiado, paramos sin empezar análisis nuevos.
+const TIME_BUDGET_MS = 30_000;
+
+async function ingestAccount(
+  account: Account,
+  summary: IngestSummary,
+  deadline: number
+) {
   const drive = driveClientForAccount(account);
   const sinceIso = account.ingestSince.toISOString();
 
@@ -26,7 +47,7 @@ async function ingestAccount(account: Account, summary: IngestSummary) {
       `and trashed=false and createdTime > '${sinceIso}'`,
     fields: "files(id,name,createdTime)",
     orderBy: "createdTime", // ascendente: del más antiguo al más nuevo (para el cursor)
-    pageSize: 25,
+    pageSize: PAGE_SIZE,
     spaces: "drive",
   });
 
@@ -37,8 +58,16 @@ async function ingestAccount(account: Account, summary: IngestSummary) {
   const advance = (created: Date | null) => {
     if (created && created.getTime() > cursor.getTime()) cursor = created;
   };
+  let analizados = 0; // análisis (llamadas al modelo) hechos en esta invocación
 
   for (const f of files) {
+    // Cortamos antes de empezar un nuevo documento si ya no queda presupuesto:
+    // el cursor está guardado hasta el último resuelto, así que no perdemos nada.
+    if (Date.now() > deadline) {
+      summary.incompleto = true;
+      summary.detalles.push("parado por tiempo: quedan documentos por procesar");
+      break;
+    }
     if (!f.id || !f.name) continue;
     const created = f.createdTime ? new Date(f.createdTime) : null;
 
@@ -84,6 +113,18 @@ async function ingestAccount(account: Account, summary: IngestSummary) {
       continue;
     }
 
+    // Antes de la (única y cara) llamada al modelo persistimos el avance por los
+    // documentos saltados hasta aquí. Si el análisis llegara a agotar el tiempo
+    // de la función, la siguiente pasada no re-escanea lo ya saltado: arranca en
+    // esta entrevista y la completa (evita quedarse en bucle sin progresar).
+    if (cursor.getTime() > account.ingestSince.getTime()) {
+      await prisma.googleAccount.update({
+        where: { email: account.email },
+        data: { ingestSince: cursor },
+      });
+      account.ingestSince = cursor;
+    }
+
     // Análisis completo + guardado. La posición y el candidato salen del
     // contenido (lib/analyze deriva la posición de role.title si no se indica).
     try {
@@ -108,9 +149,23 @@ async function ingestAccount(account: Account, summary: IngestSummary) {
       if (err instanceof AnalyzeError) {
         advance(created); // problema del contenido/modelo: no reintentar en bucle
       } else {
+        summary.incompleto = true;
         break; // transitorio: reintentar sin avanzar el cursor
       }
     }
+
+    // Tope por invocación: hecha 1 entrevista paramos y dejamos el resto para la
+    // siguiente pasada (el botón encadena). Así no nos acercamos al límite de 60s.
+    if (++analizados >= MAX_ANALYSES_PER_RUN) {
+      summary.incompleto = true;
+      break;
+    }
+  }
+
+  // Recorrida toda la página y vino llena: probablemente hay más notas en Drive
+  // de las que pedimos, así que dejamos señal para continuar en la próxima pasada.
+  if (!summary.incompleto && files.length >= PAGE_SIZE) {
+    summary.incompleto = true;
   }
 
   if (cursor.getTime() > account.ingestSince.getTime()) {
@@ -128,10 +183,15 @@ async function ingestAccounts(accounts: Account[]): Promise<IngestSummary> {
     errores: 0,
     detalles: [],
   };
+  const deadline = Date.now() + TIME_BUDGET_MS;
 
   for (const account of accounts) {
+    if (Date.now() > deadline) {
+      summary.incompleto = true;
+      break;
+    }
     try {
-      await ingestAccount(account, summary);
+      await ingestAccount(account, summary, deadline);
     } catch (err) {
       summary.errores++;
       summary.detalles.push(
