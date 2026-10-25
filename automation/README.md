@@ -1,66 +1,41 @@
-# Ingesta automática de transcripciones de Gemini
+# Optional Google Drive ingestion
 
-Automatiza que las entrevistas grabadas con Gemini en Google Meet entren solas
-en la interview-tool, sin subir nada a mano. La posición se detecta desde el
-título de la reunión.
+This Apps Script workflow imports Gemini interview notes from Google Drive into the application, so transcripts do not need to be uploaded manually. It reads the Google Doc text directly; it does not use the PDF parser.
 
-## Cómo funciona
+## Workflow
 
-```
-Reunión de Meet  →  Google Doc "Notes by Gemini" + correo de aviso
-   →  Filtro de Gmail etiqueta el correo como "Entrevistas/Pendiente"
-   →  Apps Script (cada 15 min): abre el Doc, extrae el texto,
-      parsea la posición del asunto y hace POST a /api/ingest
-   →  La app analiza el transcript y guarda la entrevista
-   →  El correo pasa a "Entrevistas/Procesada" (no se reprocesa)
-```
+~~~text
+Google Meet interview
+  -> Gemini creates a Google Doc and sends a notification email
+  -> a Gmail filter labels the email as Interviews/Pending
+  -> Apps Script runs every 15 minutes, reads the Doc, and POSTs it to /api/ingest
+  -> the application analyzes and stores the interview
+  -> the email is moved to Interviews/Processed
+~~~
 
-No usa el parser de PDF: lee el texto del Google Doc directamente.
+## Meeting title convention
 
-## Convención de nombrado (importante)
+Name each interview meeting:
 
-Nombra cada reunión de Meet de una entrevista así:
+~~~text
+Interview - <Position> - <Candidate>
+~~~
 
-```
-Entrevista - <Posición> - <Candidato>
-```
+For example: Interview - Backend Engineer - Alex Smith. The position is parsed from the title and created if it does not already exist.
 
-Ejemplo: `Entrevista - C&B - Juan Pérez`. Gemini le añade el sufijo de fecha y
-"Notes by Gemini" automáticamente. De ahí salen:
+## One-time setup
 
-- el prefijo `Entrevista`, que usa el filtro de Gmail para etiquetar;
-- la `<Posición>`, que se asocia a la entrevista (se crea si no existía).
+1. Configure INGEST_SECRET in the application environment and in the Apps Script project. Generate a random value with openssl rand -hex 32.
+2. Create a Gmail filter for Gemini interview notifications whose subject contains Interview. Apply the label Interviews/Pending.
+3. Open script.google.com and create a project.
+4. Paste the contents of gemini-ingest.gs into the project.
+5. Set CONFIG.INGEST_SECRET and, if needed, CONFIG.INGEST_URL in the script.
+6. Run setup() once and grant the requested Gmail and Google Docs permissions. This creates the labels and the 15-minute trigger.
 
-## Setup (una vez)
+The optional cron endpoint can also be called periodically using the key configured for ingestion. See .env.example for its settings.
 
-1. **Backend**: añade `INGEST_SECRET` en Vercel (Production) y en tu `.env`
-   local. Genera uno con `openssl rand -hex 32`.
+## Manual check
 
-2. **Filtro de Gmail**: crea un filtro que case los correos de Gemini de
-   entrevistas (remitente del aviso de Gemini + asunto contiene `Entrevista`) y
-   aplique la etiqueta `Entrevistas/Pendiente`. Las etiquetas las crea `setup()`.
+Label a test notification as Interviews/Pending, then run processInterviews() from the Apps Script editor. Check the execution logs and confirm that the interview appears in the application and the email moves to Interviews/Processed.
 
-3. **Apps Script**:
-   - Ve a https://script.google.com → Nuevo proyecto.
-   - Pega el contenido de `gemini-ingest.gs`.
-   - Rellena `CONFIG.INGEST_SECRET` con el mismo secreto que en Vercel
-     (y `INGEST_URL` si cambia el dominio).
-   - Ejecuta la función `setup()` una vez y autoriza los permisos que pida
-     (Gmail y Documentos). Eso crea las etiquetas y el trigger de 15 min.
-
-A partir de ahí, solo tienes que nombrar las reuniones con la convención.
-
-## Probar
-
-- Etiqueta a mano un correo de entrevista con `Entrevistas/Pendiente`.
-- En el editor de Apps Script, ejecuta `processInterviews()` y mira los logs
-  (Ver → Registros). Debe aparecer `OK [<posición>] <asunto>` y la entrevista
-  en la app, con el correo movido a `Entrevistas/Procesada`.
-
-## Notas
-
-- Si el POST falla, el correo se queda en `Pendiente` y se reintenta en la
-  siguiente pasada del trigger.
-- El secreto evita que cualquiera pueda crear entrevistas llamando al endpoint.
-- Si en vez de las "Notes by Gemini" prefieres el transcript verbatim, basta con
-  apuntar a ese otro Doc; el resto del flujo es idéntico.
+If the POST fails, the email remains pending and will be retried on the next trigger. Use synthetic interview material when testing.
