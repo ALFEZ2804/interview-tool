@@ -42,6 +42,14 @@ cp .env.example .env
 
 2. Create a PostgreSQL database and set DATABASE_URL in .env.
 
+   Alternatively, use the included Compose file to run only PostgreSQL locally:
+
+   ~~~sh
+   docker compose up -d db
+   ~~~
+
+   For that local database, set `DATABASE_URL=postgresql://nova:nova@localhost:5432/nova_interviews` in `.env`. Stop it with `docker compose down`; add `-v` only if you also want to delete its persisted database volume.
+
 3. Configure a Google OAuth client in Google Cloud:
    - Add http://localhost:3000/api/oauth/google/callback as an authorized redirect URI.
    - Add your own Google account as a test user.
@@ -63,7 +71,7 @@ npx prisma migrate deploy
 npm run dev
 ~~~
 
-Open http://localhost:3000 and sign in with the configured Google test account. After sign-in, open the upload page and use the preloaded example link to inspect a sample analysis without uploading a transcript.
+Open http://localhost:3000 and sign in with the configured Google test account. After sign-in, open **Nueva entrevista** and use the preloaded example to inspect a sample analysis without uploading a transcript. See [DEMO.md](DEMO.md) for a short review walkthrough and the exact access requirements.
 
 ## Optional: Google Drive ingestion
 
