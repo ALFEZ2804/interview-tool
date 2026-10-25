@@ -28,13 +28,7 @@ The sample interview is fictional. Use only synthetic transcripts when testing u
 
 ## Local setup
 
-1. Install dependencies:
-
-~~~sh
-npm ci
-~~~
-
-2. Copy the environment template:
+1. Copy the environment template before installing dependencies:
 
 ~~~powershell
 Copy-Item .env.example .env
@@ -46,24 +40,25 @@ On macOS or Linux:
 cp .env.example .env
 ~~~
 
-3. Create a PostgreSQL database and set DATABASE_URL to its connection string.
+2. Create a PostgreSQL database and set DATABASE_URL in .env.
 
-4. Configure a Google OAuth client in Google Cloud:
+3. Configure a Google OAuth client in Google Cloud:
    - Add http://localhost:3000/api/oauth/google/callback as an authorized redirect URI.
    - Add your own Google account as a test user.
    - Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in .env.
    - Set ALLOWED_EMAIL_DOMAIN to a domain you control. For a local test only, it can be left blank if Google OAuth is restricted to your test users.
 
-5. Generate local secrets and configure .env:
+4. Configure the remaining values in .env:
    - OPENAI_API_KEY: required to analyze a transcript.
    - AUTH_SECRET: session-signing secret; generate with openssl rand -hex 32.
    - TOKEN_ENC_KEY: 32-byte hexadecimal key for encrypting Google refresh tokens; generate with openssl rand -hex 32.
    - ADMIN_EMAILS: optional comma-separated list of local admin accounts.
    - INGEST_SECRET: only needed for the optional automated ingestion endpoint.
 
-6. Apply the database migrations and start the app:
+5. Install dependencies, apply the database migrations, and start the app:
 
 ~~~sh
+npm ci
 npx prisma migrate deploy
 npm run dev
 ~~~
